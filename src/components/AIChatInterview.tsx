@@ -69,6 +69,9 @@ export const AIChatInterview: React.FC<AIChatInterviewProps> = ({ onGenerateFina
     setMessages([]);
     setCurrentQuestionNumber(1);
 
+    const isHR = config.interviewType === 'HR' || config.interviewType === 'Behavioral';
+    const effectiveStack = isHR ? 'Culture Fit & Soft Skills' : config.techStack;
+
     try {
       const res = await fetch('/api/gemini/chat-interview', {
         method: 'POST',
@@ -79,13 +82,18 @@ export const AIChatInterview: React.FC<AIChatInterviewProps> = ({ onGenerateFina
           difficulty: config.difficulty,
           language: config.language,
           interviewType: config.interviewType,
-          techStack: config.techStack,
+          techStack: effectiveStack,
           userResponse: '',
+          questionNumber: 1,
         }),
       });
 
       const data = await res.json();
-      const initialQuestion = data.nextQuestion || `Welcome to your ${config.interviewType} interview focused on ${config.techStack || 'Software Engineering'} for the ${config.jobRole} position. Can you start by explaining how you approach core concepts in ${config.techStack}?`;
+      const initialQuestion = data.nextQuestion || (
+        isHR
+          ? `Welcome to your HR & Culture Fit interview for the ${config.jobRole} role. To get started, could you share a bit about your professional background and what drew you to apply for this ${config.jobRole} position?`
+          : `Welcome to your ${config.interviewType} interview focused on ${config.techStack} for the ${config.jobRole} position. Can you start by explaining how you approach core concepts in ${config.techStack}?`
+      );
 
       setMessages([
         {
@@ -97,11 +105,15 @@ export const AIChatInterview: React.FC<AIChatInterviewProps> = ({ onGenerateFina
       ]);
     } catch (err) {
       console.error(err);
+      const fallbackInit = isHR
+        ? `Welcome to your HR & Culture Fit interview for ${config.jobRole}! Question #1: What motivated you to seek a new position as a ${config.jobRole}, and how do your long-term career goals align with our team?`
+        : `Welcome to your ${config.jobRole} technical interview! Question #1: In ${config.techStack}, how do you structure production components for scalability, testability, and clean architecture?`;
+
       setMessages([
         {
           id: '1',
           sender: 'ai',
-          text: `Welcome to your ${config.jobRole} interview! Let's begin with Question #1: How do you handle concurrency control or state consistency in distributed environments?`,
+          text: fallbackInit,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         },
       ]);
@@ -127,6 +139,9 @@ export const AIChatInterview: React.FC<AIChatInterviewProps> = ({ onGenerateFina
     setInputResponse('');
     setLoading(true);
 
+    const isHR = config.interviewType === 'HR' || config.interviewType === 'Behavioral';
+    const effectiveStack = isHR ? 'Culture Fit & Soft Skills' : config.techStack;
+
     try {
       const res = await fetch('/api/gemini/chat-interview', {
         method: 'POST',
@@ -137,9 +152,10 @@ export const AIChatInterview: React.FC<AIChatInterviewProps> = ({ onGenerateFina
           difficulty: config.difficulty,
           language: config.language,
           interviewType: config.interviewType,
-          techStack: config.techStack,
+          techStack: effectiveStack,
           history: newHistory.map((m) => `${m.sender}: ${m.text}`),
           userResponse: userTextToSend,
+          questionNumber: currentQuestionNumber,
         }),
       });
 
@@ -151,7 +167,7 @@ export const AIChatInterview: React.FC<AIChatInterviewProps> = ({ onGenerateFina
       const aiMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
         sender: 'ai',
-        text: nextQ || 'Thank you for that response. Moving on to the next concept...',
+        text: nextQ || 'Thank you for that response. Moving on to our next topic...',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         evaluation: aiEvaluation,
       };
@@ -160,17 +176,21 @@ export const AIChatInterview: React.FC<AIChatInterviewProps> = ({ onGenerateFina
       setCurrentQuestionNumber((q) => q + 1);
     } catch (err) {
       console.error(err);
+      const fallbackNext = isHR
+        ? `Thank you for sharing that context. Moving to Question #${currentQuestionNumber + 1}: Tell me about a time you had a significant disagreement with a team member. How did you resolve it?`
+        : `Thank you for that explanation. Question #${currentQuestionNumber + 1}: How do you approach debugging and performance profiling when troubleshooting latency in ${config.techStack}?`;
+
       setMessages((prev) => [
         ...prev,
         {
           id: (Date.now() + 1).toString(),
           sender: 'ai',
-          text: 'Thank you. That answer demonstrated good foundational principles. Next question: How do you measure and optimize time complexity in critical code paths?',
+          text: fallbackNext,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           evaluation: {
             score: 85,
-            mistakes: ['Mentioned solution clearly but could add concrete numerical benchmark metrics.'],
-            betterAnswer: 'Focus on quantifying the impact, e.g. "reduced memory overhead by 35%".',
+            mistakes: [isHR ? 'Answer was polite; could add more details using the STAR framework.' : `Clear explanation of ${config.techStack}; consider adding quantitative benchmark results.`],
+            betterAnswer: isHR ? 'Provide a concrete Situation, Task, Action, and Result example.' : `Highlight specific trade-offs and latency metrics achieved in ${config.techStack}.`,
           },
         },
       ]);
@@ -231,29 +251,72 @@ export const AIChatInterview: React.FC<AIChatInterviewProps> = ({ onGenerateFina
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Tech Stack / Programming Language */}
+            {/* Interview Type Selection First */}
             <div className="md:col-span-2">
-              <label className="block text-xs font-bold text-slate-800 mb-2">
-                Programming Language / Technical Subject
-              </label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 gap-2">
-                {techStackOptions.map((stack) => (
+              <label className="block text-xs font-bold text-slate-800 mb-2">Select Interview Round Type</label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {interviewTypeOptions.map((t) => (
                   <button
-                    key={stack}
+                    key={t}
                     type="button"
-                    onClick={() => setConfig({ ...config, techStack: stack })}
-                    className={`py-2 px-3 rounded-xl text-xs font-semibold text-left transition-all flex items-center justify-between border ${
-                      config.techStack === stack
-                        ? 'bg-sky-50 text-sky-800 border-sky-400 font-bold shadow-2xs'
+                    onClick={() => {
+                      const isHRRound = t === 'HR' || t === 'Behavioral';
+                      setConfig({
+                        ...config,
+                        interviewType: t,
+                        techStack: isHRRound ? 'Culture Fit & Soft Skills' : config.techStack === 'Culture Fit & Soft Skills' ? 'Java & Spring Boot' : config.techStack
+                      });
+                    }}
+                    className={`py-2.5 px-3 rounded-xl text-xs font-semibold transition-all border flex flex-col items-center gap-1 ${
+                      config.interviewType === t
+                        ? 'bg-sky-600 text-white border-sky-600 font-bold shadow-xs'
                         : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                     }`}
                   >
-                    <span>{stack}</span>
-                    {config.techStack === stack && <CheckCircle2 className="w-3.5 h-3.5 text-sky-600 shrink-0" />}
+                    <span>{t} Round</span>
+                    <span className="text-[10px] font-normal opacity-80">
+                      {t === 'HR' || t === 'Behavioral' ? 'Culture & Soft Skills' : 'Technical & Coding'}
+                    </span>
                   </button>
                 ))}
               </div>
             </div>
+
+            {/* Tech Stack / Programming Language - Only for Technical/System Design */}
+            {config.interviewType !== 'HR' && config.interviewType !== 'Behavioral' ? (
+              <div className="md:col-span-2 p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                <label className="block text-xs font-bold text-slate-800">
+                  Programming Language / Technical Focus
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 gap-2">
+                  {techStackOptions.map((stack) => (
+                    <button
+                      key={stack}
+                      type="button"
+                      onClick={() => setConfig({ ...config, techStack: stack })}
+                      className={`py-2 px-3 rounded-xl text-xs font-semibold text-left transition-all flex items-center justify-between border ${
+                        config.techStack === stack
+                          ? 'bg-sky-50 text-sky-800 border-sky-400 font-bold shadow-2xs'
+                          : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                      }`}
+                    >
+                      <span>{stack}</span>
+                      {config.techStack === stack && <CheckCircle2 className="w-3.5 h-3.5 text-sky-600 shrink-0" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="md:col-span-2 p-4 rounded-xl bg-fuchsia-50 border border-fuchsia-200 text-fuchsia-900 text-xs space-y-1">
+                <p className="font-bold flex items-center gap-2 text-fuchsia-800">
+                  <Sparkles className="w-4 h-4 text-fuchsia-600" />
+                  HR & Behavioral Interview Round Active
+                </p>
+                <p className="text-slate-600 text-[11px]">
+                  Technical coding questions (Java, Python, C++, SQL, etc.) are excluded. Questions will evaluate communication, culture fit, salary expectations, career trajectory, and STAR behavioral scenarios.
+                </p>
+              </div>
+            )}
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-2">Target Job Role</label>
@@ -306,26 +369,6 @@ export const AIChatInterview: React.FC<AIChatInterviewProps> = ({ onGenerateFina
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-2">Interview Type</label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {interviewTypeOptions.map((t) => (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => setConfig({ ...config, interviewType: t })}
-                    className={`py-2 rounded-xl text-xs font-semibold transition-all border ${
-                      config.interviewType === t
-                        ? 'bg-indigo-50 text-indigo-800 border-indigo-400 font-bold shadow-2xs'
-                        : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                    }`}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
               <label className="block text-xs font-semibold text-slate-700 mb-2">Primary Spoken Language</label>
               <select
                 value={config.language}
@@ -346,7 +389,11 @@ export const AIChatInterview: React.FC<AIChatInterviewProps> = ({ onGenerateFina
             className="w-full gradient-btn py-3.5 rounded-xl font-bold text-sm text-white shadow-md flex items-center justify-center gap-2 mt-4"
           >
             <Play className="w-4 h-4 fill-white" />
-            <span>Start {config.techStack} Session Now</span>
+            <span>
+              {config.interviewType === 'HR' || config.interviewType === 'Behavioral'
+                ? `Start HR & Culture Fit Session Now (${config.jobRole})`
+                : `Start Technical ${config.techStack} Session Now`}
+            </span>
           </button>
         </div>
       ) : (

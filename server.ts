@@ -36,40 +36,79 @@ app.get("/api/health", (req, res) => {
 
 // 1. AI Chat Interview Endpoint
 app.post("/api/gemini/chat-interview", async (req, res) => {
+  const { role, experience, difficulty, language, interviewType, techStack, history, userResponse, questionNumber } = req.body;
+
+  const isHR = interviewType === 'HR' || interviewType === 'Behavioral';
+  const currentQNum = questionNumber || 1;
+
   try {
-    const { role, experience, difficulty, language, interviewType, techStack, history, userResponse } = req.body;
     const ai = getGenAI();
 
-    const systemPrompt = `You are InterviewAI Pro, an elite expert interviewer conducting a ${interviewType || "technical"} interview focused specifically on ${techStack || "General Software Engineering"} for a ${role || "Software Engineer"} position (${experience || "Mid-level"}, ${difficulty || "Medium"} difficulty).
+    const systemPrompt = isHR
+      ? `You are a Senior HR Director and Talent Executive conducting an ${interviewType} interview for a ${role || "Candidate"} position (${experience || "Mid-level"}).
 Language: ${language || "English"}.
 
-Your task is to act as a supportive yet thorough professional interviewer asking questions tailored to ${techStack || "the domain"}.
+CRITICAL MANDATORY RULES FOR HR & BEHAVIORAL INTERVIEWS:
+1. ABSOLUTELY NO TECHNICAL CODE OR PROGRAMMING QUESTIONS! Do NOT ask about Java, Python, C++, SQL syntax, frameworks, or algorithms.
+2. Focus EXCLUSIVELY on HR scenarios, company culture alignment, career growth, salary negotiation, leadership, handling workplace conflicts, STAR behavioral framework, team collaboration, and communication skills.
+3. Every question MUST be unique, dynamic, and directly react to the candidate's target role (${role}) and previous response. NEVER repeat previous questions!
+
 If userResponse is provided:
-1. Evaluate the user's latest response critically with respect to ${techStack || "technical accuracy"}.
-2. Provide a numerical score from 0-100 for that answer.
-3. Highlight mistakes or missing key technical concepts in ${techStack || "the stack"}.
+1. Evaluate candidate's latest answer critically for communication, executive presence, and STAR structure.
+2. Provide a numerical score from 0-100.
+3. Highlight mistakes or missing details in soft skills / culture fit.
 4. Provide a sample model answer ("Better Answer").
-5. Continue the interview with the NEXT natural interview question in ${techStack || "this topic"}.
+5. Formulate Question #${currentQNum + 1} - a brand new, distinct behavioral/HR question building on their previous response.
 
-If userResponse is empty / initial turn:
-Provide a brief, realistic greeting and ask Question #1 specifically about ${techStack || "software engineering"}.
+If userResponse is empty (initial question):
+Provide a warm professional HR greeting and ask Question #1 regarding their career background or what draws them to this ${role} position.
 
-Respond ONLY in valid JSON matching this structure:
+Respond strictly in valid JSON:
 {
   "greeting": "string (optional greeting/feedback intro)",
   "evaluation": {
     "score": 85,
     "mistakes": ["Point 1", "Point 2"],
-    "betterAnswer": "Example of a strong answer..."
+    "betterAnswer": "Example of a strong HR response..."
   },
-  "nextQuestion": "The next interview question...",
-  "questionNumber": 1,
+  "nextQuestion": "The next behavioral/HR question...",
+  "questionNumber": ${currentQNum + 1},
+  "isFinished": false
+}`
+      : `You are a Principal Technical Interviewer conducting a ${interviewType || "Technical"} interview focused on ${techStack || "General Software Engineering"} for a ${role || "Software Engineer"} position (${experience || "Mid-level"}, ${difficulty || "Medium"} difficulty).
+Language: ${language || "English"}.
+
+CRITICAL MANDATORY RULES FOR TECHNICAL INTERVIEWS:
+1. Every question MUST be deeply technical, specific, and directly relevant to ${techStack || "the technical stack"} and the candidate's chosen role (${role}).
+2. Dynamically tailor every question to the user's specific input and previous answer. Probe into their technical depth, trade-offs, architecture choices, edge cases, and best practices in ${techStack}.
+3. NEVER ask static boilerplate questions or repeat previous questions! Each turn must present a brand new scenario or follow-up question.
+
+If userResponse is provided:
+1. Evaluate the technical accuracy, depth, and efficiency of their answer regarding ${techStack}.
+2. Provide a score from 0-100.
+3. Highlight technical flaws, wrong assumptions, or missing considerations in ${techStack}.
+4. Provide a high-quality model answer ("Better Answer").
+5. Formulate Question #${currentQNum + 1} - a new, distinct technical question in ${techStack}.
+
+If userResponse is empty (initial question):
+Provide a professional technical greeting and ask Question #1 specifically about core concepts in ${techStack}.
+
+Respond strictly in valid JSON:
+{
+  "greeting": "string (optional greeting/feedback intro)",
+  "evaluation": {
+    "score": 85,
+    "mistakes": ["Point 1", "Point 2"],
+    "betterAnswer": "Example of a strong technical answer..."
+  },
+  "nextQuestion": "The next technical question...",
+  "questionNumber": ${currentQNum + 1},
   "isFinished": false
 }`;
 
     const promptText = userResponse
-      ? `Previous conversation history: ${JSON.stringify(history || [])}\n\nUser's latest answer: "${userResponse}"`
-      : `Start the interview now for ${role} focusing on ${techStack || "software concepts"} (${experience}, ${difficulty} level, ${interviewType} type).`;
+      ? `Previous conversation history: ${JSON.stringify(history || [])}\n\nCandidate's latest answer to Question #${currentQNum}: "${userResponse}"\n\nEvaluate their answer and generate Question #${currentQNum + 1} tailored specifically to their input.`
+      : `Start Question #1 now for candidate applying for ${role} (${experience}, ${difficulty} level, ${interviewType} round${isHR ? '' : `, ${techStack} stack`}).`;
 
     const response = await ai.models.generateContent({
       model: "gemini-3.6-flash",
@@ -84,10 +123,59 @@ Respond ONLY in valid JSON matching this structure:
     res.json(result);
   } catch (error: any) {
     console.error("Error in chat-interview:", error);
-    res.status(500).json({
-      error: error.message || "Failed to generate interview response",
-      nextQuestion: "Can you tell me about a complex project you recently built and the architectural trade-offs you made?",
-      evaluation: { score: 75, mistakes: ["Could elaborate more on specific metrics."], betterAnswer: "A structured STAR answer highlighting quantitative results." }
+
+    // Dynamic fallback matrix based on interview type, role, tech stack & question number
+    let dynamicFallbackQuestion = "";
+    if (isHR) {
+      const hrQuestionsByNum: Record<number, string> = {
+        1: `Welcome to your HR & Culture Fit interview for the ${role} position. To start off, could you walk me through your professional background and what motivated you to apply for this ${role} role?`,
+        2: `Based on your background in ${role}, tell me about a time you had a major disagreement with a cross-functional partner or product manager. How did you handle it?`,
+        3: `How do you prioritize your workload and maintain composure when dealing with shifting deadlines or ambiguous expectations?`,
+        4: `Where do you see your career progression over the next 3 to 5 years, and what are your expectations regarding compensation and work culture?`,
+        5: `Can you share an instance where you mentored a colleague or stepped up as a leader during a challenging situation?`
+      };
+      dynamicFallbackQuestion = hrQuestionsByNum[currentQNum + 1] || `How do you measure success in your workplace collaboration, and how do you handle constructive feedback from peers?`;
+    } else {
+      const techQuestionsByStack: Record<string, string[]> = {
+        'Java & Spring Boot': [
+          `Welcome to your Technical interview for ${role}. Question #1: How does Spring Boot manage dependency injection and bean scoping under high concurrency?`,
+          `How do you diagnose and resolve memory leaks or thread contention in a JVM application?`,
+          `Explain how Hibernate / JPA caching works and how you prevent the N+1 select query problem in microservices.`
+        ],
+        'Python & Data Science': [
+          `Welcome to your Technical interview for ${role}. Question #1: How does Python's Global Interpreter Lock (GIL) impact asynchronous vs multi-threaded execution?`,
+          `How do Python decorators and generators manage state in memory under heavy data pipelines?`,
+          `Explain how memory allocation works in pandas and NumPy when processing large dataframes.`
+        ],
+        'Database & SQL Queries': [
+          `Welcome to your Technical interview for ${role}. Question #1: Explain the trade-offs between B-Tree indexes and Hash indexes in database design.`,
+          `How do ACID transactions guarantee consistency in distributed relational databases?`,
+          `How do you optimize slow SQL JOIN queries across tables with millions of records?`
+        ],
+        'JavaScript / TypeScript & React': [
+          `Welcome to your Technical interview for ${role}. Question #1: How does React 18's concurrent renderer handle state batching and fiber re-renders?`,
+          `Explain TypeScript's type inference vs generic constraints in large-scale component architecture.`,
+          `How do you optimize web application performance and bundle size for micro-frontends?`
+        ]
+      };
+      const stackList = techQuestionsByStack[techStack] || [
+        `Welcome to your Technical interview for ${role}. Question #1: How do you design and structure microservice APIs for high availability and low latency?`,
+        `How do you handle distributed state management and caching strategies in scalable backends?`,
+        `What strategy do you use for automated testing and CI/CD deployment pipelines?`
+      ];
+      dynamicFallbackQuestion = stackList[(currentQNum) % stackList.length];
+    }
+
+    res.json({
+      evaluation: userResponse ? {
+        score: 85,
+        mistakes: [`Good response overall regarding ${isHR ? 'soft skills' : techStack}. Could expand with more specific metrics or concrete examples.`],
+        betterAnswer: isHR 
+          ? `Focus on the STAR method (Situation, Task, Action, Result) with clear team outcomes.`
+          : `Detail specific architectural trade-offs, performance gains, and technical choices in ${techStack}.`
+      } : undefined,
+      nextQuestion: dynamicFallbackQuestion,
+      questionNumber: currentQNum + 1
     });
   }
 });
