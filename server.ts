@@ -664,6 +664,86 @@ Provide clear, structured, polite, and well-formatted answers using markdown.`;
   }
 });
 
+// 12. Webinars & Registration Management Endpoints
+let webinarsStore: any[] = [];
+let webinarRegistrationsStore: any[] = [];
+
+// GET Webinars
+app.get("/api/webinars", (req, res) => {
+  res.json(webinarsStore);
+});
+
+// POST Add Webinar
+app.post("/api/webinars", (req, res) => {
+  const { name, date, sourceManName, meetingLink, gformLink, price } = req.body;
+  if (!name || !date || !sourceManName) {
+    return res.status(400).json({ error: "Missing required fields (name, date, sourceManName) for webinar" });
+  }
+
+  const newWebinar = {
+    id: Date.now().toString(),
+    name: name.trim(),
+    date: date.trim(),
+    sourceManName: sourceManName.trim(),
+    meetingLink: meetingLink ? meetingLink.trim() : "",
+    gformLink: gformLink ? gformLink.trim() : "",
+    price: (price || "Free").trim(),
+    createdAt: new Date().toISOString()
+  };
+
+  webinarsStore.unshift(newWebinar);
+  res.json(newWebinar);
+});
+
+// DELETE Webinar
+app.delete("/api/webinars/:id", (req, res) => {
+  const { id } = req.params;
+  webinarsStore = webinarsStore.filter((w) => w.id !== id);
+  // Also clean up registrations for this webinar
+  webinarRegistrationsStore = webinarRegistrationsStore.filter((r) => r.webinarId !== id);
+  res.json({ success: true, remainingCount: webinarsStore.length });
+});
+
+// GET Webinar Registrations (Admin View)
+app.get("/api/webinar-registrations", (req, res) => {
+  res.json(webinarRegistrationsStore);
+});
+
+// POST Candidate Webinar Registration
+app.post("/api/webinar-registrations", (req, res) => {
+  const { webinarId, webinarName, userName, userEmail, userPhone, userRole } = req.body;
+  if (!webinarId || !userName || !userEmail) {
+    return res.status(400).json({ error: "Name and Email are required for registration." });
+  }
+
+  const newRegistration = {
+    id: Date.now().toString(),
+    webinarId: webinarId.trim(),
+    webinarName: (webinarName || "Webinar").trim(),
+    userName: userName.trim(),
+    userEmail: userEmail.trim().toLowerCase(),
+    userPhone: (userPhone || "").trim(),
+    userRole: (userRole || "Candidate").trim(),
+    registeredAt: new Date().toISOString()
+  };
+
+  webinarRegistrationsStore.unshift(newRegistration);
+  console.log(`[Webinar Registration] Candidate Registered: ${newRegistration.userName} (${newRegistration.userEmail}) for "${newRegistration.webinarName}"`);
+
+  res.json({
+    success: true,
+    registration: newRegistration,
+    message: "Registration successful! User details sent to Admin logs."
+  });
+});
+
+// DELETE Candidate Registration (Admin Action)
+app.delete("/api/webinar-registrations/:id", (req, res) => {
+  const { id } = req.params;
+  webinarRegistrationsStore = webinarRegistrationsStore.filter((r) => r.id !== id);
+  res.json({ success: true });
+});
+
 
 // Vite middleware / Static server setup
 async function startServer() {

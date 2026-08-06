@@ -139,3 +139,25 @@ export interface NotificationItem {
   time: string;
   read: boolean;
 }
+
+export interface WebinarItem {
+  id: string;
+  name: string;
+  date: string;
+  sourceManName: string;
+  meetingLink: string;
+  gformLink?: string;
+  price: string;
+  createdAt?: string;
+}
+
+export interface WebinarRegistration {
+  id: string;
+  webinarId: string;
+  webinarName: string;
+  userName: string;
+  userEmail: string;
+  userPhone?: string;
+  userRole?: string;
+  registeredAt: string;
+}

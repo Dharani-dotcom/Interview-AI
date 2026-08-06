@@ -10,12 +10,25 @@ import {
   Cpu,
   RefreshCw,
   FileCode2,
-  Terminal
+  Terminal,
+  Search,
+  Filter
 } from 'lucide-react';
 
 export const CodingInterview: React.FC = () => {
   const [selectedProblemIndex, setSelectedProblemIndex] = useState(0);
-  const problem = sampleCodingProblems[selectedProblemIndex];
+  const [difficultyFilter, setDifficultyFilter] = useState<'All' | 'Easy' | 'Medium' | 'Hard'>('All');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredProblems = sampleCodingProblems.filter((p) => {
+    const matchesDiff = difficultyFilter === 'All' || p.difficulty === difficultyFilter;
+    const matchesSearch =
+      p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.description.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesDiff && matchesSearch;
+  });
+
+  const problem = sampleCodingProblems[selectedProblemIndex] || sampleCodingProblems[0];
 
   const languages = ['Python', 'JavaScript', 'Java', 'C++', 'SQL'] as const;
   const [language, setLanguage] = useState<'Python' | 'JavaScript' | 'Java' | 'C++' | 'SQL'>('Python');
@@ -23,6 +36,16 @@ export const CodingInterview: React.FC = () => {
   const [code, setCode] = useState(problem.starterCode[language]);
   const [loading, setLoading] = useState(false);
   const [evaluation, setEvaluation] = useState<any>(null);
+
+  const handleSelectProblem = (probId: string) => {
+    const index = sampleCodingProblems.findIndex((p) => p.id === probId);
+    if (index !== -1) {
+      setSelectedProblemIndex(index);
+      const targetProb = sampleCodingProblems[index];
+      setCode(targetProb.starterCode[language] || '');
+      setEvaluation(null);
+    }
+  };
 
   const handleLanguageChange = (lang: any) => {
     setLanguage(lang);
@@ -73,37 +96,106 @@ export const CodingInterview: React.FC = () => {
 
   return (
     <div className="space-y-6 py-6 max-w-6xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
-        <div>
-          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-            <Code2 className="w-6 h-6 text-amber-400" />
-            AI Coding Interview Sandbox
-          </h2>
-          <p className="text-xs text-slate-400">
-            Write, execute, and optimize code with real-time AI hidden test case validation & complexity analysis.
-          </p>
+      {/* Header & Problem Selector Bar */}
+      <div className="space-y-4 border-b border-slate-800 pb-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                <Code2 className="w-6 h-6 text-amber-400" />
+                AI Coding Interview Sandbox
+              </h2>
+              <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/30">
+                {sampleCodingProblems.length} Problems Bank
+              </span>
+            </div>
+            <p className="text-xs text-slate-400 mt-1">
+              Select from top DSA, System Coding, and SQL interview questions. Write, execute, and optimize code with real-time AI test case validation & complexity analysis.
+            </p>
+          </div>
+
+          {/* Quick Dropdown Selector */}
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-semibold text-slate-300 shrink-0">
+              Select Problem:
+            </label>
+            <select
+              value={problem.id}
+              onChange={(e) => handleSelectProblem(e.target.value)}
+              className="bg-slate-900 text-amber-300 border border-amber-500/40 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-amber-500/50 max-w-xs cursor-pointer shadow-md"
+            >
+              {sampleCodingProblems.map((p, idx) => (
+                <option key={p.id} value={p.id} className="bg-slate-900 text-white">
+                  #{idx + 1} [{p.difficulty}] {p.title}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
-        {/* Problem selector */}
-        <div className="flex items-center gap-2">
-          {sampleCodingProblems.map((prob, idx) => (
-            <button
-              key={prob.id}
-              onClick={() => {
-                setSelectedProblemIndex(idx);
-                setCode(prob.starterCode[language]);
-                setEvaluation(null);
-              }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-                selectedProblemIndex === idx
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50 shadow'
-                  : 'bg-slate-900 text-slate-400 border border-slate-800'
-              }`}
-            >
-              Problem {idx + 1}: {prob.title.split(' ')[0]}
-            </button>
-          ))}
+        {/* Filter & Search Bar for Coding Problems */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-900/80 p-3 rounded-2xl border border-slate-800">
+          <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
+            <span className="text-[11px] font-semibold text-slate-400 flex items-center gap-1 pr-1">
+              <Filter className="w-3.5 h-3.5 text-amber-400" /> Difficulty:
+            </span>
+            {(['All', 'Easy', 'Medium', 'Hard'] as const).map((diff) => (
+              <button
+                key={diff}
+                onClick={() => setDifficultyFilter(diff)}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                  difficultyFilter === diff
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-xs'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                {diff}
+              </button>
+            ))}
+          </div>
+
+          <div className="relative w-full sm:w-64">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search 14 coding problems..."
+              className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-slate-950 text-white text-xs placeholder:text-slate-500 border border-slate-800 focus:border-amber-500/50"
+            />
+          </div>
+        </div>
+
+        {/* Horizontal Pills list of filtered problems */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin">
+          {filteredProblems.map((prob) => {
+            const originalIdx = sampleCodingProblems.findIndex((p) => p.id === prob.id);
+            const isSelected = problem.id === prob.id;
+
+            return (
+              <button
+                key={prob.id}
+                onClick={() => handleSelectProblem(prob.id)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all flex items-center gap-1.5 shrink-0 ${
+                  isSelected
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50 font-bold shadow-md'
+                    : 'bg-slate-900 text-slate-400 border border-slate-800 hover:text-white hover:border-slate-700'
+                }`}
+              >
+                <span className="text-[10px] opacity-70 font-mono">#{originalIdx + 1}</span>
+                <span>{prob.title}</span>
+                <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${
+                  prob.difficulty === 'Easy'
+                    ? 'bg-emerald-500/20 text-emerald-300'
+                    : prob.difficulty === 'Medium'
+                    ? 'bg-amber-500/20 text-amber-300'
+                    : 'bg-rose-500/20 text-rose-300'
+                }`}>
+                  {prob.difficulty}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
