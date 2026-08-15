@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ActiveTab, AIModel, UserProfile, NotificationItem } from '../types';
+import { ActiveTab, AIModel, UserProfile, NotificationItem, UserUsageState } from '../types';
 import {
   Sparkles,
   Bot,
@@ -22,7 +22,10 @@ import {
   User,
   LogOut,
   Brain,
-  MessageSquare
+  MessageSquare,
+  Zap,
+  BookOpen,
+  CreditCard
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -31,8 +34,10 @@ interface NavbarProps {
   selectedModel: AIModel;
   setSelectedModel: (model: AIModel) => void;
   user: UserProfile;
+  userUsage?: UserUsageState;
   notifications: NotificationItem[];
   onOpenAuth: () => void;
+  onOpenSubscription?: () => void;
   onLogout: () => void;
 }
 
@@ -42,8 +47,10 @@ export const Navbar: React.FC<NavbarProps> = ({
   selectedModel = 'gemini-3.6-flash',
   setSelectedModel = (_m: AIModel) => {},
   user,
+  userUsage,
   notifications = [],
   onOpenAuth,
+  onOpenSubscription = () => {},
   onLogout = () => {},
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -64,19 +71,20 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const primaryNavItems: { id: ActiveTab; label: string; icon: React.ReactNode }[] = [
     { id: 'home', label: 'Home', icon: <Sparkles className="w-4 h-4" /> },
-    { id: 'general-chat', label: 'General Chat', icon: <MessageSquare className="w-4 h-4" /> },
-    { id: 'dashboard', label: 'Dashboard', icon: <BarChart3 className="w-4 h-4" /> },
-    { id: 'chat-interview', label: 'Interview Chat', icon: <Bot className="w-4 h-4" /> },
+    { id: 'voice-tutor', label: 'Voice Tutor & Board', icon: <BookOpen className="w-4 h-4" /> },
     { id: 'voice-interview', label: 'AI Voice', icon: <Mic className="w-4 h-4" /> },
     { id: 'video-interview', label: 'AI Video', icon: <Video className="w-4 h-4" /> },
-    { id: 'resume-analyzer', label: 'Resume', icon: <FileText className="w-4 h-4" /> },
+    { id: 'chat-interview', label: 'Interview Chat', icon: <Bot className="w-4 h-4" /> },
     { id: 'coding-interview', label: 'Coding', icon: <Code2 className="w-4 h-4" /> },
     { id: 'system-design', label: 'System Design', icon: <Cpu className="w-4 h-4" /> },
-    { id: 'analytics', label: 'Analytics', icon: <BarChart3 className="w-4 h-4" /> },
+    { id: 'resume-analyzer', label: 'Resume', icon: <FileText className="w-4 h-4" /> },
+    { id: 'dashboard', label: 'Dashboard', icon: <BarChart3 className="w-4 h-4" /> },
   ];
 
   const secondaryNavItems: { id: ActiveTab; label: string; icon: React.ReactNode }[] = [
+    { id: 'general-chat', label: 'General Chat', icon: <MessageSquare className="w-4 h-4" /> },
     { id: 'ats-checker', label: 'ATS Checker', icon: <Target className="w-4 h-4" /> },
+    { id: 'analytics', label: 'Analytics', icon: <BarChart3 className="w-4 h-4" /> },
     { id: 'behavioral-interview', label: 'Behavioral', icon: <Heart className="w-4 h-4" /> },
     { id: 'hr-interview', label: 'HR Interview', icon: <UserCheck className="w-4 h-4" /> },
     { id: 'certificate', label: 'Certificates', icon: <Award className="w-4 h-4" /> },
@@ -128,6 +136,33 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Controls Right */}
           <div className="flex items-center gap-2">
+
+            {/* Real-time Subscription Quota & Upgrade Button */}
+            {userUsage && (
+              <button
+                onClick={onOpenSubscription}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs ${
+                  userUsage.isUnlimited
+                    ? 'bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100'
+                    : userUsage.remainingUses > 0
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
+                      : 'bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-100 animate-pulse'
+                }`}
+                title="Click to view subscription tiers & real-time quota"
+              >
+                <Zap className={`w-3.5 h-3.5 ${userUsage.isUnlimited ? 'text-purple-600' : userUsage.remainingUses > 0 ? 'text-emerald-600' : 'text-rose-600'}`} />
+                <span className="hidden sm:inline">
+                  {userUsage.isUnlimited
+                    ? 'Unlimited'
+                    : userUsage.remainingUses > 0
+                      ? `${userUsage.remainingUses}/${userUsage.totalAllowedUses} Left`
+                      : '0 Uses Left (Unlock)'}
+                </span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded bg-white font-mono shadow-xs border border-slate-200">
+                  {userUsage.planId === 'tier-2000' ? '₹2000' : userUsage.planId === 'tier-1299' ? '₹1299' : userUsage.planId === 'tier-499' ? '₹499' : 'Free'}
+                </span>
+              </button>
+            )}
 
             {/* Model Switcher Dropdown */}
             <div className="relative">
@@ -243,6 +278,15 @@ export const Navbar: React.FC<NavbarProps> = ({
                     </button>
                     <button
                       onClick={() => {
+                        onOpenSubscription();
+                        setShowProfileDropdown(false);
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-lg text-xs text-slate-700 hover:bg-slate-100 flex items-center gap-2"
+                    >
+                      <Zap className="w-3.5 h-3.5 text-amber-500" /> Manage Subscription
+                    </button>
+                    <button
+                      onClick={() => {
                         onLogout();
                         setShowProfileDropdown(false);
                       }}
@@ -256,9 +300,10 @@ export const Navbar: React.FC<NavbarProps> = ({
             ) : (
               <button
                 onClick={onOpenAuth}
-                className="gradient-btn px-4 py-1.5 rounded-lg text-xs font-semibold text-white shadow-xs"
+                className="gradient-btn px-4 py-1.5 rounded-xl text-xs font-bold text-white shadow-xs flex items-center gap-1.5 cursor-pointer hover:opacity-95 transition-opacity"
               >
-                Sign In
+                <User className="w-3.5 h-3.5 text-sky-200" />
+                <span>Sign In</span>
               </button>
             )}
 

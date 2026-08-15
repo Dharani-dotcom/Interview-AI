@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
 import { UserCheck, Sparkles, RefreshCw, CheckCircle2 } from 'lucide-react';
 
-export const HRInterview: React.FC = () => {
+interface HRInterviewProps {
+  onVerifyUsage?: () => Promise<boolean>;
+}
+
+export const HRInterview: React.FC<HRInterviewProps> = ({ onVerifyUsage }) => {
   const hrQuestions = [
     "Why do you want to join our engineering team over other tech companies?",
     "What are your salary expectations and compensation breakdown for this role?",
@@ -23,6 +27,11 @@ export const HRInterview: React.FC = () => {
     if (!answer.trim()) {
       alert('Please type or speak your answer to evaluate.');
       return;
+    }
+
+    if (onVerifyUsage) {
+      const allowed = await onVerifyUsage();
+      if (!allowed) return;
     }
 
     setLoading(true);

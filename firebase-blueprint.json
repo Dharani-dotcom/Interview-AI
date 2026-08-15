@@ -1,0 +1,162 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User account profile and practice stats",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "maxLength": 150 },
+        "avatar": { "type": "string", "maxLength": 500 },
+        "role": { "type": "string", "maxLength": 100 },
+        "targetRole": { "type": "string", "maxLength": 100 },
+        "dailyStreak": { "type": "number" },
+        "overallScore": { "type": "number" },
+        "totalInterviews": { "type": "number" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["userId", "email"]
+    },
+    "WebinarRegistration": {
+      "title": "WebinarRegistration",
+      "description": "Candidate registration for live technical webinars",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "webinarId": { "type": "string" },
+        "webinarName": { "type": "string", "maxLength": 200 },
+        "userName": { "type": "string", "maxLength": 100 },
+        "userEmail": { "type": "string", "maxLength": 150 },
+        "userPhone": { "type": "string", "maxLength": 50 },
+        "userRole": { "type": "string", "maxLength": 100 },
+        "amountPaid": { "type": "string", "maxLength": 50 },
+        "utr": { "type": "string", "maxLength": 100 },
+        "paymentRecipient": { "type": "string", "maxLength": 100 },
+        "status": { "type": "string", "maxLength": 50 },
+        "registeredAt": { "type": "string" }
+      },
+      "required": ["webinarId", "userName", "userEmail"]
+    },
+    "WebinarItem": {
+      "title": "WebinarItem",
+      "description": "Live webinar events created by admin",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string", "maxLength": 200 },
+        "date": { "type": "string", "maxLength": 100 },
+        "sourceManName": { "type": "string", "maxLength": 100 },
+        "meetingLink": { "type": "string", "maxLength": 500 },
+        "gformLink": { "type": "string", "maxLength": 500 },
+        "price": { "type": "string", "maxLength": 50 },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["name", "date"]
+    },
+    "PracticeQuestion": {
+      "title": "PracticeQuestion",
+      "description": "Technical & Coding questions bank including Second Largest and Binary Search",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "role": { "type": "string", "maxLength": 100 },
+        "type": { "type": "string", "maxLength": 50 },
+        "title": { "type": "string", "maxLength": 500 },
+        "difficulty": { "type": "string", "maxLength": 50 },
+        "category": { "type": "string", "maxLength": 100 },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["role", "type", "title"]
+    },
+    "InterviewReport": {
+      "title": "InterviewReport",
+      "description": "Candidate interview evaluation report",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "role": { "type": "string", "maxLength": 100 },
+        "type": { "type": "string", "maxLength": 100 },
+        "score": { "type": "number" },
+        "durationMinutes": { "type": "number" },
+        "summary": { "type": "string", "maxLength": 2000 },
+        "strengths": { "type": "array" },
+        "weaknesses": { "type": "array" },
+        "date": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["role", "type", "score"]
+    },
+    "SubscriptionPayment": {
+      "title": "SubscriptionPayment",
+      "description": "Candidate subscription purchase and UPI QR payment verification log",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "userEmail": { "type": "string", "maxLength": 150 },
+        "userName": { "type": "string", "maxLength": 100 },
+        "planId": { "type": "string", "maxLength": 50 },
+        "planName": { "type": "string", "maxLength": 100 },
+        "amount": { "type": "number" },
+        "totalUsesGranted": { "type": "number" },
+        "utr": { "type": "string", "maxLength": 100 },
+        "status": { "type": "string", "enum": ["pending", "verified", "rejected"], "maxLength": 50 },
+        "paidTo": { "type": "string", "maxLength": 100 },
+        "createdAt": { "type": "string" },
+        "verifiedAt": { "type": "string" }
+      },
+      "required": ["userId", "userEmail", "planId", "amount", "utr"]
+    },
+    "UserUsage": {
+      "title": "UserUsage",
+      "description": "Real-time user usage limit, remaining credits, and active subscription plan",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userEmail": { "type": "string", "maxLength": 150 },
+        "planId": { "type": "string", "maxLength": 50 },
+        "planName": { "type": "string", "maxLength": 100 },
+        "totalAllowedUses": { "type": "number" },
+        "usedCount": { "type": "number" },
+        "remainingUses": { "type": "number" },
+        "isUnlimited": { "type": "boolean" },
+        "expiresAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["userId", "usedCount", "remainingUses"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User profile data"
+    },
+    "/webinarRegistrations/{registrationId}": {
+      "schema": { "$ref": "#/entities/WebinarRegistration" },
+      "description": "Candidate webinar payment and registration details"
+    },
+    "/webinars/{webinarId}": {
+      "schema": { "$ref": "#/entities/WebinarItem" },
+      "description": "Webinar schedules and details"
+    },
+    "/practiceQuestions/{questionId}": {
+      "schema": { "$ref": "#/entities/PracticeQuestion" },
+      "description": "Interview and DSA questions"
+    },
+    "/interviewReports/{reportId}": {
+      "schema": { "$ref": "#/entities/InterviewReport" },
+      "description": "Saved interview performance reports"
+    },
+    "/subscriptionPayments/{paymentId}": {
+      "schema": { "$ref": "#/entities/SubscriptionPayment" },
+      "description": "Real-time UPI subscription payments submitted via QR code"
+    },
+    "/userUsage/{userId}": {
+      "schema": { "$ref": "#/entities/UserUsage" },
+      "description": "Real-time candidate quota and active subscription tier"
+    }
+  }
+}

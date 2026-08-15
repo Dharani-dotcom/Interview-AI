@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
 import { Heart, Sparkles, CheckCircle2, AlertCircle, RefreshCw, Star } from 'lucide-react';
 
-export const BehavioralInterview: React.FC = () => {
+interface BehavioralInterviewProps {
+  onVerifyUsage?: () => Promise<boolean>;
+}
+
+export const BehavioralInterview: React.FC<BehavioralInterviewProps> = ({ onVerifyUsage }) => {
   const [situation, setSituation] = useState('');
   const [task, setTask] = useState('');
   const [action, setAction] = useState('');
@@ -21,6 +25,11 @@ export const BehavioralInterview: React.FC = () => {
     if (!situation.trim() && !task.trim() && !action.trim() && !result.trim()) {
       alert('Please fill in at least one section of the STAR framework or click "Load Sample STAR Story".');
       return;
+    }
+
+    if (onVerifyUsage) {
+      const allowed = await onVerifyUsage();
+      if (!allowed) return;
     }
 
     setLoading(true);

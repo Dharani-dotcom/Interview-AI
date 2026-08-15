@@ -15,7 +15,11 @@ import {
   CheckCircle2
 } from 'lucide-react';
 
-export const SystemDesignView: React.FC = () => {
+interface SystemDesignViewProps {
+  onVerifyUsage?: () => Promise<boolean>;
+}
+
+export const SystemDesignView: React.FC<SystemDesignViewProps> = ({ onVerifyUsage }) => {
   const [nodes, setNodes] = useState<SystemDesignNode[]>([
     { id: '1', label: 'CDN / Route53', type: 'cdn', x: 50, y: 100 },
     { id: '2', label: 'API Gateway', type: 'api-gateway', x: 220, y: 100 },
@@ -58,6 +62,11 @@ export const SystemDesignView: React.FC = () => {
   };
 
   const handleEvaluateDesign = async () => {
+    if (onVerifyUsage) {
+      const allowed = await onVerifyUsage();
+      if (!allowed) return;
+    }
+
     setLoading(true);
 
     try {

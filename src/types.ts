@@ -5,6 +5,7 @@ export type ActiveTab =
   | 'chat-interview'
   | 'voice-interview'
   | 'video-interview'
+  | 'voice-tutor'
   | 'resume-analyzer'
   | 'ats-checker'
   | 'coding-interview'
@@ -14,6 +15,19 @@ export type ActiveTab =
   | 'analytics'
   | 'certificate'
   | 'admin-panel';
+
+export interface VoiceTutorLesson {
+  id: string;
+  topic: string; // 'Java', 'Python', 'RAG & Gen AI', 'SQL & Database', 'System Design'
+  title: string;
+  subtitle: string;
+  level: 'Beginner' | 'Intermediate' | 'Advanced';
+  code: string;
+  language: 'java' | 'python' | 'javascript' | 'sql' | 'text';
+  audioExplanation: string;
+  keyPoints: string[];
+  asciiDiagram?: string;
+}
 
 export type AIModel = 'gemini-3.6-flash' | 'gpt-4o' | 'claude-3-5-sonnet' | 'deepseek-r1' | 'groq-llama3';
 
@@ -74,6 +88,8 @@ export interface VideoAnalysisResult {
   eyeContactEstimation: string;
   smileAndFacialExpression: string;
   postureFeedback: string;
+  verbalResponse?: string;
+  followUpQuestion?: string;
   suggestions: string[];
   summary: string;
 }
@@ -99,11 +115,29 @@ export interface ATSCheckResult {
 
 export interface CodingProblem {
   id: string;
+  leetcodeNumber?: number | string;
   title: string;
   difficulty: 'Easy' | 'Medium' | 'Hard';
+  experienceLevel: 'Fresher (0-1 yrs)' | 'Mid-Level (1-3 yrs)' | 'Experienced (3+ yrs)' | 'All Levels';
+  role: string;
+  category: string;
   description: string;
   starterCode: Record<string, string>;
+  solutions: Record<string, string>;
+  hints: string[];
+  explanation: string;
+  timeComplexity: string;
+  spaceComplexity: string;
   testCases: { input: string; expected: string }[];
+}
+
+export interface CodingMentorMessage {
+  id: string;
+  sender: 'ai' | 'user';
+  text: string;
+  timestamp: string;
+  codeSnippet?: string;
+  hints?: string[];
 }
 
 export interface SystemDesignNode {
@@ -159,5 +193,54 @@ export interface WebinarRegistration {
   userEmail: string;
   userPhone?: string;
   userRole?: string;
+  utr?: string;
+  amountPaid?: string;
+  paymentRecipient?: string;
+  status?: string;
   registeredAt: string;
 }
+
+export type PlanId = 'free' | 'tier-99' | 'tier-699' | 'tier-1299' | 'tier-499' | 'tier-2000';
+
+export interface PricingPlan {
+  id: PlanId;
+  name: string;
+  price: number; // in INR
+  period: string;
+  allowedUses: number; // -1 for unlimited
+  features: string[];
+  isPopular?: boolean;
+  badge?: string;
+  color: string;
+}
+
+export interface UserUsageState {
+  userId: string;
+  userEmail?: string;
+  planId: PlanId;
+  planName: string;
+  totalAllowedUses: number; // 1 for free, 5 for 99, 25 for 699, -1 for 1299
+  usedCount: number;
+  remainingUses: number;
+  isUnlimited: boolean;
+  expiresAt?: string;
+  updatedAt?: string;
+}
+
+export interface SubscriptionPaymentRecord {
+  id: string;
+  userId: string;
+  userEmail: string;
+  userName: string;
+  userPhone?: string;
+  planId: PlanId;
+  planName: string;
+  amount: number;
+  totalUsesGranted: number;
+  utr: string;
+  status: 'pending' | 'verified' | 'rejected';
+  paidTo: string;
+  createdAt: string;
+  verifiedAt?: string;
+}
+

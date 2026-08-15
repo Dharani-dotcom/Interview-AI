@@ -16,7 +16,11 @@ import {
   Brain
 } from 'lucide-react';
 
-export const VoiceInterview: React.FC = () => {
+interface VoiceInterviewProps {
+  onVerifyUsage?: () => Promise<boolean>;
+}
+
+export const VoiceInterview: React.FC<VoiceInterviewProps> = ({ onVerifyUsage }) => {
   const [selectedTopic, setSelectedTopic] = useState<string>('Java & Spring Boot');
   const [isRecording, setIsRecording] = useState(false);
   const [micActive, setMicActive] = useState(false);
@@ -29,15 +33,20 @@ export const VoiceInterview: React.FC = () => {
   const [analysis, setAnalysis] = useState<VoiceAnalysisResult | null>(null);
 
   const topicQuestionsMap: Record<string, string[]> = {
+    'Generative AI & LLMs': [
+      'Explain the Transformer self-attention mechanism, Multi-Head Attention, and KV-cache optimizations during LLM decoding.',
+      'How do Parameter-Efficient Fine-Tuning (PEFT) and LoRA (Low-Rank Adaptation) modify weights compared to full model fine-tuning?',
+      'How do you mitigate LLM hallucinations and evaluate generative model outputs using ground truth metrics and guardrails?'
+    ],
+    'RAG & AI Engineering': [
+      'Walk me through designing an enterprise RAG architecture: ingestion, chunking strategies, dense vs sparse vector embeddings, and re-ranking.',
+      'How do vector databases (like Chroma, Pinecone, pgvector) use HNSW and cosine similarity for sub-millisecond retrieval?',
+      'Explain how you implement autonomous AI agents using ReAct loops, tool calling, and multi-agent coordination.'
+    ],
     'Java & Spring Boot': [
       'Explain Java memory management: Heap, Stack, Metaspace, and Garbage Collection tuning.',
       'How do Java Spring Boot annotations like @Transactional, @Autowired, and @Bean function under the hood?',
       'Explain thread synchronization, volatile keyword, and ConcurrentHashMap implementation in Java.'
-    ],
-    'C++ & STL': [
-      'Explain memory management in C++: raw pointers, std::unique_ptr, std::shared_ptr, and move semantics.',
-      'What are RAII, virtual method tables (vtable), and memory alignment in modern C++?',
-      'How do templates, concepts, and constexpr optimize performance in high-frequency C++ applications?'
     ],
     'Python & Data Science': [
       'Explain Python Global Interpreter Lock (GIL), multi-threading vs multi-processing, and asyncio event loops.',
@@ -54,6 +63,11 @@ export const VoiceInterview: React.FC = () => {
       'How does React Virtual DOM reconciliation fiber algorithm optimize DOM mutations?',
       'Explain state management patterns, SSR vs SSG vs Streaming SSR, and web performance optimization.'
     ],
+    'C++ & STL': [
+      'Explain memory management in C++: raw pointers, std::unique_ptr, std::shared_ptr, and move semantics.',
+      'What are RAII, virtual method tables (vtable), and memory alignment in modern C++?',
+      'How do templates, concepts, and constexpr optimize performance in high-frequency C++ applications?'
+    ],
     'System Design': [
       'How do you design a high-throughput rate limiter capable of handling 1,000,000 requests per second?',
       'Explain how you build distributed cache invalidation strategies using Redis and CDN edge caching.',
@@ -61,7 +75,7 @@ export const VoiceInterview: React.FC = () => {
     ]
   };
 
-  const currentQuestions = topicQuestionsMap[selectedTopic] || topicQuestionsMap['Java & Spring Boot'];
+  const currentQuestions = topicQuestionsMap[selectedTopic] || topicQuestionsMap['Generative AI & LLMs'];
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 
   const recognitionRef = useRef<any>(null);
@@ -157,6 +171,11 @@ export const VoiceInterview: React.FC = () => {
   };
 
   const handleStartVoice = async () => {
+    if (onVerifyUsage) {
+      const allowed = await onVerifyUsage();
+      if (!allowed) return;
+    }
+
     await requestMicPermission();
     setIsRecording(true);
     setSeconds(0);

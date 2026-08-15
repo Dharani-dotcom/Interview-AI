@@ -17,9 +17,10 @@ import {
 
 interface AIChatInterviewProps {
   onGenerateFinalReport: (data: any) => void;
+  onVerifyUsage?: () => Promise<boolean>;
 }
 
-export const AIChatInterview: React.FC<AIChatInterviewProps> = ({ onGenerateFinalReport }) => {
+export const AIChatInterview: React.FC<AIChatInterviewProps> = ({ onGenerateFinalReport, onVerifyUsage }) => {
   const [config, setConfig] = useState<InterviewConfig>({
     jobRole: 'Software Engineer',
     experience: 'Mid-Senior Level (3-5 YOE)',
@@ -47,15 +48,17 @@ export const AIChatInterview: React.FC<AIChatInterviewProps> = ({ onGenerateFina
   ];
 
   const techStackOptions = [
+    'Generative AI & LLMs',
+    'RAG & Vector Architecture',
     'Java & Spring Boot',
-    'C++ & STL',
     'Python & Data Science',
     'Database & SQL Queries',
     'JavaScript / TypeScript & React',
+    'Data Structures & Algorithms',
+    'C++ & STL',
+    'System Design & Architecture',
     'Go (Golang)',
     'C# & .NET',
-    'Data Structures & Algorithms',
-    'System Design & Architecture',
   ];
 
   const experienceOptions = ['Entry Level (0-2 YOE)', 'Mid-Senior Level (3-5 YOE)', 'Staff / Lead (6+ YOE)', 'Executive'];
@@ -64,6 +67,11 @@ export const AIChatInterview: React.FC<AIChatInterviewProps> = ({ onGenerateFina
   const interviewTypeOptions = ['Technical', 'HR', 'Behavioral', 'System Design'] as const;
 
   const handleStartSession = async () => {
+    if (onVerifyUsage) {
+      const allowed = await onVerifyUsage();
+      if (!allowed) return;
+    }
+
     setIsSessionStarted(true);
     setLoading(true);
     setMessages([]);
