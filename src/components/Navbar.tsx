@@ -159,7 +159,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       : '0 Uses Left (Unlock)'}
                 </span>
                 <span className="text-[10px] px-1.5 py-0.2 rounded bg-white font-mono shadow-xs border border-slate-200">
-                  {userUsage.planId === 'tier-2000' ? '₹2000' : userUsage.planId === 'tier-1299' ? '₹1299' : userUsage.planId === 'tier-499' ? '₹499' : 'Free'}
+                  {userUsage.planId === 'tier-1299' ? '₹1299' : userUsage.planId === 'tier-699' ? '₹699' : userUsage.planId === 'tier-99' ? '₹99' : 'Free (1 Use)'}
                 </span>
               </button>
             )}

@@ -219,7 +219,7 @@ export interface UserUsageState {
   userEmail?: string;
   planId: PlanId;
   planName: string;
-  totalAllowedUses: number; // 1 for free, 5 for 99, 25 for 699, -1 for 1299
+  totalAllowedUses: number; // 1 for free, 10 for 99, 30 for 699, -1 for 1299
   usedCount: number;
   remainingUses: number;
   isUnlimited: boolean;

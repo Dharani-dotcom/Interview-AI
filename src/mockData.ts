@@ -7,16 +7,16 @@ export const pricingPlans: PricingPlan[] = [
     name: 'Starter Plan',
     price: 99,
     period: '/ month',
-    allowedUses: 5,
+    allowedUses: 10,
     features: [
-      '5 Full Uses per Month',
+      '10 Full Uses per Month',
       'All Features: Coding, Mock Interview & Resume Analyzer',
       'Real-time Code Test Execution & AI Debugger',
       'AI Voice & Video Interview with Real-time Scoring',
       'ATS Resume Optimization & Keyword Matcher',
       'Instant UPI QR Activation'
     ],
-    badge: 'Budget Starter',
+    badge: 'Starter • 10 Uses / Mo',
     color: 'emerald'
   },
   {
@@ -24,9 +24,9 @@ export const pricingPlans: PricingPlan[] = [
     name: 'Medium Plan',
     price: 699,
     period: '/ month',
-    allowedUses: 25,
+    allowedUses: 30,
     features: [
-      '25 Full Uses per Month',
+      '30 Full Uses per Month',
       'All Premium Modules Unlocked',
       'Deep LeetCode Coding Sandbox with AI Socratic Mentor',
       'Voice & Video AI Mock Interviews (Technical + HR)',
@@ -35,7 +35,7 @@ export const pricingPlans: PricingPlan[] = [
       'Priority AI Speed & Response Times'
     ],
     isPopular: true,
-    badge: 'Most Popular',
+    badge: 'Most Popular • 30 Uses / Mo',
     color: 'sky'
   },
   {
@@ -45,7 +45,7 @@ export const pricingPlans: PricingPlan[] = [
     period: '/ month',
     allowedUses: -1,
     features: [
-      'Unlimited Uses (Zero Restrictions)',
+      'Unlimited Uses per Month (Zero Restrictions)',
       'Unlimited Coding Problems & Test Simulations',
       'Unlimited Voice, Video & Chat AI Interviews',
       'Unlimited Resume Analysis & ATS Match Reports',
@@ -53,7 +53,7 @@ export const pricingPlans: PricingPlan[] = [
       'Direct Real-time Cloud Synchronization',
       'Admin Priority Support'
     ],
-    badge: 'Best Value • Unlimited',
+    badge: 'Best Value • Unlimited / Mo',
     color: 'purple'
   }
 ];

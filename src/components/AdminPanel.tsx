@@ -31,7 +31,15 @@ import {
   Check
 } from 'lucide-react';
 import { WebinarItem, WebinarRegistration, SubscriptionPaymentRecord, PlanId } from '../types';
-import { subscribeToSubscriptionPayments, adminUpdateUserQuota } from '../lib/firebase';
+import { 
+  subscribeToSubscriptionPayments, 
+  adminUpdateUserQuota,
+  subscribeToWebinars,
+  subscribeToWebinarRegistrations,
+  saveWebinarToFirestore,
+  deleteWebinarFromFirestore,
+  deleteWebinarRegistrationFromFirestore
+} from '../lib/firebase';
 
 export const AdminPanel: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'webinars' | 'registrations' | 'subscriptions' | 'questions' | 'users' | 'metrics'>('subscriptions');
@@ -44,7 +52,7 @@ export const AdminPanel: React.FC = () => {
   // Manual Quota Edit Form
   const [manualEmail, setManualEmail] = useState('');
   const [manualPlan, setManualPlan] = useState<PlanId>('tier-99');
-  const [manualUses, setManualUses] = useState(5);
+  const [manualUses, setManualUses] = useState(10);
   const [manualMsg, setManualMsg] = useState('');
 
   // Webinars state
@@ -84,41 +92,18 @@ export const AdminPanel: React.FC = () => {
   const [newType, setNewType] = useState('Technical');
   const [newTitle, setNewTitle] = useState('');
 
-  // Fetch webinars on mount
-  const fetchWebinars = async () => {
-    try {
-      setWebinarLoading(true);
-      const res = await fetch('/api/webinars');
-      if (res.ok) {
-        const data = await res.json();
-        setWebinarsList(data);
-      }
-    } catch (err) {
-      console.error('Error fetching webinars:', err);
-    } finally {
-      setWebinarLoading(false);
-    }
-  };
-
-  // Fetch candidate registrations
-  const fetchRegistrations = async () => {
-    try {
-      setRegLoading(true);
-      const res = await fetch('/api/webinar-registrations');
-      if (res.ok) {
-        const data = await res.json();
-        setRegistrationsList(data);
-      }
-    } catch (err) {
-      console.error('Error fetching webinar registrations:', err);
-    } finally {
-      setRegLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchWebinars();
-    fetchRegistrations();
+    // Real-time listener for Webinars from Firestore
+    const unsubscribeWebinars = subscribeToWebinars((webinars) => {
+      setWebinarsList(webinars);
+      setWebinarLoading(false);
+    });
+
+    // Real-time listener for Webinar Registrations from Firestore
+    const unsubscribeRegs = subscribeToWebinarRegistrations((regs) => {
+      setRegistrationsList(regs);
+      setRegLoading(false);
+    });
 
     // Real-time listener for Firestore subscription payments
     const unsubscribeSubs = subscribeToSubscriptionPayments((payments) => {
@@ -126,6 +111,8 @@ export const AdminPanel: React.FC = () => {
     });
 
     return () => {
+      if (unsubscribeWebinars) unsubscribeWebinars();
+      if (unsubscribeRegs) unsubscribeRegs();
       if (unsubscribeSubs) unsubscribeSubs();
     };
   }, []);
@@ -139,16 +126,16 @@ export const AdminPanel: React.FC = () => {
 
     const planNames: Record<PlanId, string> = {
       'free': 'Free Trial (1 Use)',
-      'tier-99': 'Starter Plan (₹99 - 5 Uses / Mo)',
-      'tier-699': 'Medium Plan (₹699 - 25 Uses / Mo)',
-      'tier-1299': 'Unlimited Plan (₹1299 - Unlimited Uses)',
+      'tier-99': 'Starter Plan (₹99 - 10 Uses / Mo)',
+      'tier-699': 'Medium Plan (₹699 - 30 Uses / Mo)',
+      'tier-1299': 'Unlimited Plan (₹1299 - Unlimited / Mo)',
       'tier-499': 'Starter Legacy (₹499 - 10 Uses)',
       'tier-2000': 'Unlimited Legacy (₹2000)',
     };
 
     const isUnlimited = manualPlan === 'tier-1299' || manualPlan === 'tier-2000';
-    const totalAllowed = isUnlimited ? -1 : manualPlan === 'tier-99' ? 5 : manualPlan === 'tier-699' ? 25 : manualPlan === 'tier-499' ? 10 : 1;
-    const remaining = isUnlimited ? 99999 : Number(manualUses) || (manualPlan === 'tier-699' ? 25 : 5);
+    const totalAllowed = isUnlimited ? -1 : manualPlan === 'tier-99' ? 10 : manualPlan === 'tier-699' ? 30 : manualPlan === 'tier-499' ? 10 : 1;
+    const remaining = isUnlimited ? 99999 : Number(manualUses) || (manualPlan === 'tier-699' ? 30 : 10);
     const userId = manualEmail.trim().replace(/[^a-zA-Z0-9]/g, '_');
 
     try {
@@ -207,58 +194,82 @@ export const AdminPanel: React.FC = () => {
 
     try {
       setWebinarLoading(true);
-      const res = await fetch('/api/webinars', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: name.trim(),
-          date: date.trim(),
-          sourceManName: sourceManName.trim(),
-          meetingLink: meetingLink.trim(),
-          gformLink: gformLink.trim(),
-          price: price.trim() || '₹100',
-        }),
-      });
+      const webinarPayload = {
+        name: name.trim(),
+        date: date.trim(),
+        sourceManName: sourceManName.trim(),
+        meetingLink: meetingLink.trim(),
+        gformLink: gformLink.trim(),
+        price: price.trim() || '₹100',
+      };
 
-      if (res.ok) {
-        const newWebinar = await res.json();
-        setWebinarsList((prev) => [newWebinar, ...prev]);
-        setName('');
-        setDate('');
-        setMeetingLink('');
-        setGformLink('');
-        setPrice('₹100');
-        setWebinarSuccessMsg('Webinar successfully published! Live on Home Page with payment QR.');
-        setTimeout(() => setWebinarSuccessMsg(''), 4000);
+      // 1. Save directly to Firestore for real-time sync across all devices globally
+      await saveWebinarToFirestore(webinarPayload);
+
+      // 2. Also notify server as backup
+      try {
+        await fetch('/api/webinars', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(webinarPayload),
+        });
+      } catch (err) {
+        // Fallback
       }
+
+      setName('');
+      setDate('');
+      setMeetingLink('');
+      setGformLink('');
+      setPrice('₹100');
+      setWebinarSuccessMsg('Webinar successfully published and synced in real-time across all devices!');
+      setTimeout(() => setWebinarSuccessMsg(''), 4000);
     } catch (err) {
       console.error('Error adding webinar:', err);
+      alert('Failed to publish webinar to Firestore database.');
     } finally {
       setWebinarLoading(false);
     }
   };
 
   const handleDeleteWebinar = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this webinar?')) return;
+    if (!confirm('Are you sure you want to delete this webinar? It will be removed in real-time from all devices across the world.')) return;
     try {
-      const res = await fetch(`/api/webinars/${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        setWebinarsList((prev) => prev.filter((w) => w.id !== id));
+      // 1. Delete from Firestore real-time database
+      await deleteWebinarFromFirestore(id);
+
+      // 2. Also notify server
+      try {
+        await fetch(`/api/webinars/${id}`, { method: 'DELETE' });
+      } catch (err) {
+        // Fallback
       }
+
+      // Optimistically remove from local list if not yet caught by snapshot
+      setWebinarsList((prev) => prev.filter((w) => w.id !== id));
     } catch (err) {
       console.error('Error deleting webinar:', err);
+      alert('Failed to delete webinar from Firestore.');
     }
   };
 
   const handleDeleteRegistration = async (id: string) => {
     if (!confirm('Are you sure you want to delete this registration?')) return;
     try {
-      const res = await fetch(`/api/webinar-registrations/${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        setRegistrationsList((prev) => prev.filter((r) => r.id !== id));
+      // 1. Delete from Firestore
+      await deleteWebinarRegistrationFromFirestore(id);
+
+      // 2. Also notify server
+      try {
+        await fetch(`/api/webinar-registrations/${id}`, { method: 'DELETE' });
+      } catch (err) {
+        // Fallback
       }
+
+      setRegistrationsList((prev) => prev.filter((r) => r.id !== id));
     } catch (err) {
       console.error('Error deleting registration:', err);
+      alert('Failed to delete registration from Firestore.');
     }
   };
 
@@ -367,10 +378,7 @@ export const AdminPanel: React.FC = () => {
             <span>Webinars ({webinarsList.length})</span>
           </button>
           <button
-            onClick={() => {
-              setActiveTab('registrations');
-              fetchRegistrations();
-            }}
+            onClick={() => setActiveTab('registrations')}
             className={`px-3 py-1.5 rounded-lg font-semibold transition-all flex items-center gap-1.5 ${
               activeTab === 'registrations' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'text-slate-400 hover:text-white'
             }`}
@@ -434,7 +442,7 @@ export const AdminPanel: React.FC = () => {
                 <CreditCard className="w-4 h-4 text-sky-400" /> Active Tier Plans
               </span>
               <p className="text-xs font-bold text-sky-300 pt-1">
-                ₹99 (5x) • ₹699 (25x) • ₹1299 (∞)
+                ₹99 (10x / mo) • ₹699 (30x / mo) • ₹1299 (∞ / mo)
               </p>
             </div>
 
@@ -485,17 +493,17 @@ export const AdminPanel: React.FC = () => {
                   onChange={(e) => {
                     const p = e.target.value as PlanId;
                     setManualPlan(p);
-                    if (p === 'tier-99') setManualUses(5);
-                    else if (p === 'tier-699') setManualUses(25);
+                    if (p === 'tier-99') setManualUses(10);
+                    else if (p === 'tier-699') setManualUses(30);
                     else if (p === 'tier-1299' || p === 'tier-2000') setManualUses(99999);
                     else if (p === 'tier-499') setManualUses(10);
                     else setManualUses(1);
                   }}
                   className="w-full px-3.5 py-2.5 rounded-xl glass-input text-white text-xs bg-slate-900"
                 >
-                  <option value="tier-99">Starter (₹99 - 5 Uses)</option>
-                  <option value="tier-699">Medium (₹699 - 25 Uses)</option>
-                  <option value="tier-1299">Unlimited (₹1299 - Unlimited)</option>
+                  <option value="tier-99">Starter (₹99 - 10 Uses / Mo)</option>
+                  <option value="tier-699">Medium (₹699 - 30 Uses / Mo)</option>
+                  <option value="tier-1299">Unlimited (₹1299 - Unlimited / Mo)</option>
                   <option value="free">Free Trial (1 Use)</option>
                 </select>
               </div>
@@ -804,12 +812,10 @@ export const AdminPanel: React.FC = () => {
                 <Video className="w-4 h-4 text-sky-400" />
                 Active Published Webinars ({webinarsList.length})
               </h3>
-              <button
-                onClick={fetchWebinars}
-                className="text-[11px] text-sky-400 hover:underline font-semibold"
-              >
-                Refresh List
-              </button>
+              <span className="text-[11px] text-emerald-400 font-semibold flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                Live Firestore Real-time Sync
+              </span>
             </div>
 
             {webinarsList.length === 0 ? (
@@ -938,12 +944,10 @@ export const AdminPanel: React.FC = () => {
                   <Download className="w-3.5 h-3.5" />
                   <span>Export CSV</span>
                 </button>
-                <button
-                  onClick={fetchRegistrations}
-                  className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold"
-                >
-                  Refresh Log
-                </button>
+                <span className="px-2.5 py-1.5 rounded-lg bg-emerald-950/40 text-emerald-300 border border-emerald-500/30 text-[11px] font-semibold flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  Realtime Cloud Sync
+                </span>
               </div>
             </div>
 

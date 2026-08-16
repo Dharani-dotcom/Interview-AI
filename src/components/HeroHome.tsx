@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ActiveTab, WebinarItem, UserUsageState, UserProfile } from '../types';
 import { pricingPlans } from '../mockData';
+import { subscribeToWebinars, saveWebinarRegistrationToFirestore } from '../lib/firebase';
 import {
   Sparkles,
   MessageSquare,
@@ -70,21 +71,16 @@ export const HeroHome: React.FC<HeroHomeProps> = ({
   const [registeredIds, setRegisteredIds] = useState<string[]>([]);
 
   useEffect(() => {
-    const loadWebinars = async () => {
-      try {
-        setLoadingWebinars(true);
-        const res = await fetch('/api/webinars');
-        if (res.ok) {
-          const data = await res.json();
-          setWebinars(data);
-        }
-      } catch (err) {
-        console.error('Failed to load webinars:', err);
-      } finally {
-        setLoadingWebinars(false);
-      }
+    setLoadingWebinars(true);
+    // Real-time listener: Any change made by Admin on ANY phone/device in the universe is reflected here immediately!
+    const unsubscribe = subscribeToWebinars((data) => {
+      setWebinars(data);
+      setLoadingWebinars(false);
+    });
+
+    return () => {
+      if (unsubscribe) unsubscribe();
     };
-    loadWebinars();
   }, []);
 
   const handleOpenRegisterModal = (w: WebinarItem) => {
@@ -124,30 +120,38 @@ export const HeroHome: React.FC<HeroHomeProps> = ({
 
     try {
       setIsSubmitting(true);
-      const res = await fetch('/api/webinar-registrations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          webinarId: selectedWebinar.id,
-          webinarName: selectedWebinar.name,
-          userName: regName.trim(),
-          userEmail: regEmail.trim(),
-          userPhone: regPhone.trim(),
-          userRole: regRole.trim(),
-          utr: utrVal.trim() || 'UPI_QR_SCANNED',
-          amountPaid: amount || '₹100',
-        }),
-      });
+      const regPayload = {
+        webinarId: selectedWebinar.id,
+        webinarName: selectedWebinar.name,
+        userName: regName.trim(),
+        userEmail: regEmail.trim().toLowerCase(),
+        userPhone: regPhone.trim(),
+        userRole: regRole.trim(),
+        utr: utrVal.trim() || 'UPI_QR_SCANNED',
+        amountPaid: amount || selectedWebinar.price || '₹100',
+        paymentRecipient: 'priyadha1988@oksbi (priyadha 1988)',
+        registeredAt: new Date().toISOString()
+      };
 
-      if (res.ok) {
-        setRegStep('submitted');
-        setRegisteredIds((prev) => [...prev, selectedWebinar.id]);
-      } else {
-        alert('Failed to register. Please try again.');
+      // 1. Save directly to Firestore for instantaneous Admin visibility on all devices
+      await saveWebinarRegistrationToFirestore(regPayload);
+
+      // 2. Also notify server as backup
+      try {
+        await fetch('/api/webinar-registrations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(regPayload),
+        });
+      } catch (err) {
+        // Fallback
       }
+
+      setRegStep('submitted');
+      setRegisteredIds((prev) => [...prev, selectedWebinar.id]);
     } catch (err) {
       console.error('Registration error:', err);
-      alert('Network error during registration.');
+      alert('Network error during registration. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -171,9 +175,9 @@ export const HeroHome: React.FC<HeroHomeProps> = ({
     {
       id: 'general-chat',
       title: 'General AI Chat',
-      desc: 'Normal conversation, career tips, salary advice, and technical explanations with AI Assistant.',
-      icon: <MessageSquare className="w-5 h-5 text-sky-600" />,
-      tag: 'AI Assistant'
+      desc: 'Unlimited free conversations, career tips, salary advice, code snippets, and technical explanations with AI Assistant.',
+      icon: <MessageSquare className="w-5 h-5 text-emerald-600" />,
+      tag: '100% Free'
     },
     {
       id: 'chat-interview',
@@ -382,7 +386,13 @@ export const HeroHome: React.FC<HeroHomeProps> = ({
               </div>
 
               <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-sky-600 group-hover:translate-x-1 transition-transform">
-                <span>{user?.isLoggedIn ? 'Open Module' : 'Sign In to Unlock (1 Free Use)'}</span>
+                <span>
+                  {item.id === 'general-chat'
+                    ? 'Open Free Chat'
+                    : user?.isLoggedIn
+                    ? 'Open Module'
+                    : 'Sign In to Unlock (1 Free Use)'}
+                </span>
                 <ArrowRight className="w-4 h-4" />
               </div>
             </div>

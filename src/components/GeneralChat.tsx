@@ -137,12 +137,17 @@ export const GeneralChat: React.FC = () => {
     <div className="max-w-5xl mx-auto space-y-6 px-2 sm:px-4 pb-12">
       {/* Header */}
       <div className="text-center space-y-2">
-        <span className="px-3 py-1 rounded-full bg-sky-100 text-sky-800 border border-sky-200 text-xs font-bold uppercase tracking-wider inline-flex items-center gap-1.5">
-          <Sparkles className="w-3.5 h-3.5 text-sky-600" /> AI General Assistant
-        </span>
+        <div className="inline-flex items-center gap-2">
+          <span className="px-3 py-1 rounded-full bg-sky-100 text-sky-800 border border-sky-200 text-xs font-bold uppercase tracking-wider inline-flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-sky-600" /> AI General Assistant
+          </span>
+          <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold uppercase tracking-wider inline-flex items-center gap-1">
+            Always Free (Zero Restrictions)
+          </span>
+        </div>
         <h2 className="text-3xl font-extrabold text-slate-900">General AI Chat</h2>
         <p className="text-xs text-slate-500 max-w-lg mx-auto">
-          Have a normal conversation, ask technical or career questions, brainstorm ideas, or seek general guidance with AI Assistant.
+          Have an unlimited, free conversation: ask technical or career questions, brainstorm ideas, draft emails, or seek everyday guidance with your AI Assistant.
         </p>
       </div>
 

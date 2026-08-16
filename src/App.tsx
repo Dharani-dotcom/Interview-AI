@@ -126,7 +126,7 @@ export function App() {
       setIsSubscriptionOpen(true);
       setUsageToast({
         show: true,
-        msg: result.message || `Free trial limit reached (1/1 uses). Please unlock a subscription plan (₹99 Starter, ₹699 Medium, ₹1299 Unlimited).`,
+        msg: result.message || `Free trial limit reached (1/1 uses). Please unlock a monthly subscription plan (₹99 Starter for 10 uses/mo, ₹699 Medium for 30 uses/mo, or ₹1299 Unlimited/mo).`,
         type: 'warn',
       });
       setTimeout(() => setUsageToast((p) => ({ ...p, show: false })), 5000);

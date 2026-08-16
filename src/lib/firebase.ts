@@ -23,7 +23,7 @@ import {
   limit, 
   serverTimestamp 
 } from 'firebase/firestore';
-import { UserUsageState, SubscriptionPaymentRecord, PlanId, UserProfile } from '../types';
+import { UserUsageState, SubscriptionPaymentRecord, PlanId, UserProfile, WebinarItem, WebinarRegistration } from '../types';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 // Initialize Firebase
@@ -189,25 +189,138 @@ export async function signOutUser() {
   }
 }
 
+// ---------------------------------------------------------------------------
+// DEFAULT WEBINARS & REAL-TIME WEBINAR SYNC
+// ---------------------------------------------------------------------------
+export const DEFAULT_WEBINARS: WebinarItem[] = [
+  {
+    id: "webinar-100-1",
+    name: "Mastering System Design & Distributed Systems (Live Workshop)",
+    date: "Tomorrow, 7:00 PM IST",
+    sourceManName: "Priyadha 1988 (Senior Architect)",
+    meetingLink: "",
+    gformLink: "",
+    price: "₹100",
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: "webinar-100-2",
+    name: "FAANG Coding Interview & Algorithm Masterclass",
+    date: "Saturday, 6:00 PM IST",
+    sourceManName: "Priyadha 1988 (Lead Tech Director)",
+    meetingLink: "",
+    gformLink: "",
+    price: "₹100",
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: "webinar-100-3",
+    name: "AI & Generative Engineering Bootcamp",
+    date: "Sunday, 5:00 PM IST",
+    sourceManName: "Priyadha 1988",
+    meetingLink: "",
+    gformLink: "",
+    price: "₹100",
+    createdAt: new Date().toISOString()
+  }
+];
+
+let isSeedingWebinars = false;
+
 // Real-time Firestore listeners & helpers
 export function subscribeToWebinarRegistrations(onData: (data: any[]) => void) {
   const colRef = collection(db, 'webinarRegistrations');
   return onSnapshot(colRef, (snapshot) => {
     const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    // Sort by registeredAt desc
+    items.sort((a: any, b: any) => new Date(b.registeredAt || 0).getTime() - new Date(a.registeredAt || 0).getTime());
     onData(items);
   }, (err) => {
     handleFirestoreError(err, OperationType.LIST, 'webinarRegistrations');
   });
 }
 
-export function subscribeToWebinars(onData: (data: any[]) => void) {
+export function subscribeToWebinars(onData: (data: WebinarItem[]) => void) {
   const colRef = collection(db, 'webinars');
-  return onSnapshot(colRef, (snapshot) => {
-    const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-    onData(items);
+  const metaRef = doc(db, 'systemConfig', 'webinars_meta');
+
+  return onSnapshot(colRef, async (snapshot) => {
+    try {
+      // Check if system has been seeded before
+      const metaSnap = await getDoc(metaRef);
+      const metaData = metaSnap.exists() ? metaSnap.data() : null;
+      const deletedIds: string[] = metaData?.deletedIds || [];
+
+      if (snapshot.empty && !metaData?.initialized && !isSeedingWebinars) {
+        // Seed default webinars once so they become real Firestore documents
+        isSeedingWebinars = true;
+        try {
+          for (const w of DEFAULT_WEBINARS) {
+            await setDoc(doc(db, 'webinars', w.id), w, { merge: true });
+          }
+          await setDoc(metaRef, { initialized: true, deletedIds: [], seededAt: new Date().toISOString() }, { merge: true });
+        } finally {
+          isSeedingWebinars = false;
+        }
+        return;
+      }
+
+      if (snapshot.empty) {
+        // If snapshot is empty and already initialized, it means admin deleted all webinars!
+        onData([]);
+      } else {
+        const items = snapshot.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .filter(w => !deletedIds.includes(w.id)) as WebinarItem[];
+        // Sort newest first
+        items.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+        onData(items);
+      }
+    } catch (err) {
+      console.error('Error processing webinars snapshot:', err);
+      // Fallback
+      const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() })) as WebinarItem[];
+      onData(items);
+    }
   }, (err) => {
     handleFirestoreError(err, OperationType.LIST, 'webinars');
+    onData([]);
   });
+}
+
+export async function deleteWebinarFromFirestore(webinarId: string) {
+  try {
+    const metaRef = doc(db, 'systemConfig', 'webinars_meta');
+    // 1. Record in deletedIds so it NEVER comes back
+    const metaSnap = await getDoc(metaRef);
+    const existingDeleted = metaSnap.exists() ? metaSnap.data()?.deletedIds || [] : [];
+    const updatedDeleted = Array.from(new Set([...existingDeleted, webinarId]));
+    
+    await setDoc(metaRef, { 
+      initialized: true, 
+      deletedIds: updatedDeleted, 
+      lastDeletedAt: new Date().toISOString() 
+    }, { merge: true });
+
+    // 2. Delete the actual document from Firestore collection
+    const docRef = doc(db, 'webinars', webinarId);
+    await deleteDoc(docRef);
+    return true;
+  } catch (err) {
+    handleFirestoreError(err, OperationType.DELETE, `webinars/${webinarId}`);
+    throw err;
+  }
+}
+
+export async function deleteWebinarRegistrationFromFirestore(registrationId: string) {
+  try {
+    const docRef = doc(db, 'webinarRegistrations', registrationId);
+    await deleteDoc(docRef);
+    return true;
+  } catch (err) {
+    handleFirestoreError(err, OperationType.DELETE, `webinarRegistrations/${registrationId}`);
+    throw err;
+  }
 }
 
 export function subscribeToPracticeQuestions(onData: (data: any[]) => void) {
@@ -381,7 +494,7 @@ export async function consumeFeatureUsage(
         allowed: false,
         remainingUses: 0,
         isUnlimited: false,
-        message: `You have used your ${currentUsage.planName} limit (${currentUsage.totalAllowedUses} uses). Please unlock a subscription plan (₹99 for Starter 5 uses, ₹699 for Medium 25 uses, or ₹1299 for Unlimited) via UPI QR Code.`
+        message: `You have used your ${currentUsage.planName} limit (${currentUsage.totalAllowedUses} uses). Please unlock a monthly subscription plan (₹99 for Starter 10 uses, ₹699 for Medium 30 uses, or ₹1299 for Unlimited per month) via UPI QR Code.`
       };
     }
 
