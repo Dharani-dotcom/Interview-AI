@@ -246,27 +246,40 @@ export function subscribeToWebinars(onData: (data: WebinarItem[]) => void) {
 
   return onSnapshot(colRef, async (snapshot) => {
     try {
-      // Check if system has been seeded before
-      const metaSnap = await getDoc(metaRef);
-      const metaData = metaSnap.exists() ? metaSnap.data() : null;
-      const deletedIds: string[] = metaData?.deletedIds || [];
-
-      if (snapshot.empty && !metaData?.initialized && !isSeedingWebinars) {
-        // Seed default webinars once so they become real Firestore documents
-        isSeedingWebinars = true;
-        try {
-          for (const w of DEFAULT_WEBINARS) {
-            await setDoc(doc(db, 'webinars', w.id), w, { merge: true });
-          }
-          await setDoc(metaRef, { initialized: true, deletedIds: [], seededAt: new Date().toISOString() }, { merge: true });
-        } finally {
-          isSeedingWebinars = false;
+      let deletedIds: string[] = [];
+      try {
+        const metaSnap = await getDoc(metaRef);
+        if (metaSnap.exists()) {
+          deletedIds = metaSnap.data()?.deletedIds || [];
         }
-        return;
+      } catch (e) {
+        // Continue if meta read fails
       }
 
       if (snapshot.empty) {
-        // If snapshot is empty and already initialized, it means admin deleted all webinars!
+        // If collection is empty, check if we need initial seed ONCE
+        let wasInitialized = false;
+        try {
+          const metaSnap = await getDoc(metaRef);
+          wasInitialized = metaSnap.exists() && !!metaSnap.data()?.initialized;
+        } catch (e) {
+          wasInitialized = true;
+        }
+
+        if (!wasInitialized && !isSeedingWebinars) {
+          isSeedingWebinars = true;
+          try {
+            for (const w of DEFAULT_WEBINARS) {
+              await setDoc(doc(db, 'webinars', w.id), w, { merge: true });
+            }
+            await setDoc(metaRef, { initialized: true, deletedIds: [], seededAt: new Date().toISOString() }, { merge: true });
+          } finally {
+            isSeedingWebinars = false;
+          }
+          return;
+        }
+
+        // When collection is empty and initialized, broadcast empty list
         onData([]);
       } else {
         const items = snapshot.docs
@@ -278,7 +291,6 @@ export function subscribeToWebinars(onData: (data: WebinarItem[]) => void) {
       }
     } catch (err) {
       console.error('Error processing webinars snapshot:', err);
-      // Fallback
       const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() })) as WebinarItem[];
       onData(items);
     }
@@ -291,16 +303,21 @@ export function subscribeToWebinars(onData: (data: WebinarItem[]) => void) {
 export async function deleteWebinarFromFirestore(webinarId: string) {
   try {
     const metaRef = doc(db, 'systemConfig', 'webinars_meta');
-    // 1. Record in deletedIds so it NEVER comes back
-    const metaSnap = await getDoc(metaRef);
-    const existingDeleted = metaSnap.exists() ? metaSnap.data()?.deletedIds || [] : [];
-    const updatedDeleted = Array.from(new Set([...existingDeleted, webinarId]));
     
-    await setDoc(metaRef, { 
-      initialized: true, 
-      deletedIds: updatedDeleted, 
-      lastDeletedAt: new Date().toISOString() 
-    }, { merge: true });
+    // 1. Record in deletedIds in systemConfig so it never returns on any device
+    try {
+      const metaSnap = await getDoc(metaRef);
+      const existingDeleted = metaSnap.exists() ? metaSnap.data()?.deletedIds || [] : [];
+      const updatedDeleted = Array.from(new Set([...existingDeleted, webinarId]));
+      
+      await setDoc(metaRef, { 
+        initialized: true, 
+        deletedIds: updatedDeleted, 
+        lastDeletedAt: new Date().toISOString() 
+      }, { merge: true });
+    } catch (metaErr) {
+      console.warn('Could not update webinars_meta:', metaErr);
+    }
 
     // 2. Delete the actual document from Firestore collection
     const docRef = doc(db, 'webinars', webinarId);

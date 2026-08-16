@@ -208,6 +208,71 @@ export function App() {
         onLogout={handleLogout}
       />
 
+      {/* TOP LIVE METRICS TICKER MOVING LEFT TO RIGHT */}
+      <div className="w-full bg-slate-900 text-slate-200 border-b border-slate-800 py-1.5 overflow-hidden shadow-xs relative z-20">
+        <div className="animate-marquee-ltr flex items-center gap-8 text-[11px] font-semibold select-none whitespace-nowrap">
+          {/* Set 1 */}
+          <span className="inline-flex items-center gap-1.5 text-sky-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-ping" />
+            <strong className="text-white">98.4%</strong> Offer Success Rate
+          </span>
+          <span className="inline-flex items-center gap-1.5 text-blue-300">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+            <strong className="text-white">120K+</strong> Mock Sessions Run
+          </span>
+          <span className="inline-flex items-center gap-1.5 text-indigo-300">
+            <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
+            <strong className="text-white">50+ Roles</strong> Software, AI, HR & Systems
+          </span>
+          <span className="inline-flex items-center gap-1.5 text-emerald-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+            <strong className="text-white">&lt; 1 sec</strong> Real-time AI Latency
+          </span>
+          <span className="inline-flex items-center gap-1.5 text-amber-300">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+            <strong className="text-white">$185k</strong> Avg FAANG Package
+          </span>
+          <span className="inline-flex items-center gap-1.5 text-rose-300">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
+            <strong className="text-white">4.9 / 5.0</strong> Candidate Rating
+          </span>
+          <span className="inline-flex items-center gap-1.5 text-teal-300">
+            <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-ping" />
+            <strong className="text-white">850+</strong> Hiring Partners
+          </span>
+
+          {/* Set 2 (Duplicate for smooth continuous marquee) */}
+          <span className="inline-flex items-center gap-1.5 text-sky-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-ping" />
+            <strong className="text-white">98.4%</strong> Offer Success Rate
+          </span>
+          <span className="inline-flex items-center gap-1.5 text-blue-300">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+            <strong className="text-white">120K+</strong> Mock Sessions Run
+          </span>
+          <span className="inline-flex items-center gap-1.5 text-indigo-300">
+            <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
+            <strong className="text-white">50+ Roles</strong> Software, AI, HR & Systems
+          </span>
+          <span className="inline-flex items-center gap-1.5 text-emerald-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+            <strong className="text-white">&lt; 1 sec</strong> Real-time AI Latency
+          </span>
+          <span className="inline-flex items-center gap-1.5 text-amber-300">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+            <strong className="text-white">$185k</strong> Avg FAANG Package
+          </span>
+          <span className="inline-flex items-center gap-1.5 text-rose-300">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
+            <strong className="text-white">4.9 / 5.0</strong> Candidate Rating
+          </span>
+          <span className="inline-flex items-center gap-1.5 text-teal-300">
+            <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-ping" />
+            <strong className="text-white">850+</strong> Hiring Partners
+          </span>
+        </div>
+      </div>
+
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12">
         {activeTab === 'home' && (

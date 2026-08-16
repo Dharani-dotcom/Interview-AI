@@ -111,7 +111,7 @@ Respond strictly in valid JSON:
       : `Start Question #1 now for candidate applying for ${role} (${experience}, ${difficulty} level, ${interviewType} round${isHR ? '' : `, ${techStack} stack`}).`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
+      model: "gemini-3.7-flash",
       contents: promptText,
       config: {
         systemInstruction: systemPrompt,
@@ -186,11 +186,13 @@ app.post("/api/gemini/voice-analysis", async (req, res) => {
     const { question, userTranscript, audioMetrics } = req.body;
     const ai = getGenAI();
 
-    const prompt = `Evaluate the following spoken interview answer for the question: "${question}".
-User's transcript: "${userTranscript}".
+    const prompt = `You are a warm, encouraging, and friendly Senior Tech Leader conducting a realistic voice interview.
+Question asked: "${question}".
+Candidate spoken transcript: "${userTranscript}".
 Observed raw speech metrics: ${JSON.stringify(audioMetrics || {})}.
 
-Analyze the response thoroughly and return JSON:
+Analyze the response with empathy, constructive feedback, and warmth. Act like a real, supportive human interviewer who wants the candidate to succeed.
+Return JSON:
 {
   "overallScore": 88,
   "metrics": {
@@ -200,14 +202,15 @@ Analyze the response thoroughly and return JSON:
     "fluency": 86,
     "pronunciation": 92
   },
-  "fillerWordsCount": 3,
-  "detectedFillerWords": ["um", "like", "you know"],
-  "feedback": "Concise summary of vocal tone and articulation",
-  "improvedAnswer": "Polished, highly professional spoken version"
+  "fillerWordsCount": 2,
+  "detectedFillerWords": ["um", "like"],
+  "feedback": "Warm, encouraging 2-sentence summary of vocal delivery and technical points.",
+  "verbalResponse": "That was a great explanation! I really liked how you highlighted the core architecture. Let's keep this momentum going!",
+  "improvedAnswer": "Polished, highly professional spoken version with natural conversational flow."
 }`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
+      model: "gemini-3.7-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -219,11 +222,12 @@ Analyze the response thoroughly and return JSON:
   } catch (error: any) {
     res.status(500).json({
       error: error.message || "Failed voice analysis",
-      overallScore: 82,
-      metrics: { confidence: 80, grammar: 85, speakingSpeed: "Optimal", fluency: 80, pronunciation: 85 },
-      fillerWordsCount: 2,
+      overallScore: 85,
+      metrics: { confidence: 85, grammar: 88, speakingSpeed: "Natural & Clear", fluency: 84, pronunciation: 88 },
+      fillerWordsCount: 1,
       detectedFillerWords: ["um"],
-      feedback: "Good pacing, slight hesitation before technical details.",
+      feedback: "Great enthusiasm and clear delivery! You communicated your thoughts logically.",
+      verbalResponse: "Nice job! You explained the concepts very clearly. Keep that positive energy going!",
       improvedAnswer: "Clear, confident presentation with concise points."
     });
   }
@@ -232,34 +236,41 @@ Analyze the response thoroughly and return JSON:
 // 3. Video Interview Analysis
 app.post("/api/gemini/video-analysis", async (req, res) => {
   try {
-    const { question, transcript, visualObservations } = req.body;
+    const { question, transcript, visualObservations, interviewerPersona } = req.body;
     const ai = getGenAI();
 
-    const prompt = `Perform an AI Video Interview assessment based on the interview response for question: "${question}".
-Transcript: "${transcript}".
+    const personaName = interviewerPersona || "Dr. Sarah Jenkins";
+
+    const prompt = `You are ${personaName}, a warm, friendly, highly experienced, and empathetic Principal Interviewer conducting a live real-time video interview.
+Question asked: "${question}".
+Candidate's spoken answer: "${transcript}".
 Visual & Pose tracking metrics: ${JSON.stringify(visualObservations || {})}.
 
-You are "Interview Bot", a highly skilled, supportive AI Technical Interviewer conducting this session.
-Provide structured JSON with direct verbal spoken feedback:
+MANDATORY RULES:
+1. Act like a real, friendly human interviewer sitting across from the candidate on a video call.
+2. Provide direct, natural, conversational spoken feedback ("verbalResponse") that starts with encouraging praise ("Great explanation!", "I really like how you thought through...", "That's a solid point on...") before transitioning smoothly to a natural follow-up or insight.
+3. Formulate a natural, friendly follow-up question ("followUpQuestion") that continues the conversation naturally.
+
+Provide structured JSON:
 {
-  "confidenceScore": 89,
-  "communicationScore": 91,
+  "confidenceScore": 90,
+  "communicationScore": 92,
   "professionalismScore": 94,
   "bodyLanguageScore": 88,
   "eyeContactEstimation": "Excellent (92% direct sightline)",
-  "smileAndFacialExpression": "Engaged and attentive",
-  "postureFeedback": "Upright, steady head positioning, clear eye line.",
-  "verbalResponse": "Thank you for that explanation! You clearly addressed the core algorithmic logic and trade-offs.",
-  "followUpQuestion": "How would you handle boundary edge cases or high-concurrency scaling in this scenario?",
+  "smileAndFacialExpression": "Engaged, pleasant and attentive",
+  "postureFeedback": "Upright, steady head positioning, natural smile.",
+  "verbalResponse": "Thank you so much for walking me through that! I really appreciated how clearly you explained the trade-offs and core mechanics. You have a great conversational delivery.",
+  "followUpQuestion": "Building on what you just shared, how would you handle high-concurrency spikes or distributed cache invalidation in that scenario?",
   "suggestions": [
-    "Maintain eye contact when detailing technical trade-offs",
-    "Quantify throughput or memory efficiency where applicable"
+    "Keep up the great eye contact when framing architecture decisions",
+    "You can take a brief natural pause before diving into edge cases"
   ],
-  "summary": "Strong technical presence with clear verbal structure."
+  "summary": "Strong technical presence with warm, clear verbal delivery."
 }`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
+      model: "gemini-3.7-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -270,17 +281,17 @@ Provide structured JSON with direct verbal spoken feedback:
   } catch (error: any) {
     res.status(500).json({
       error: error.message,
-      confidenceScore: 85,
-      communicationScore: 88,
-      professionalismScore: 90,
-      bodyLanguageScore: 85,
-      eyeContactEstimation: "Good (85% centered)",
-      smileAndFacialExpression: "Positive and attentive",
-      postureFeedback: "Stable posture throughout the recording.",
-      verbalResponse: "Good job answering! Your explanation had strong key points. Let's continue to the next technical challenge.",
-      followUpQuestion: "Can you walk through how you would optimize this algorithm's space complexity to O(1)?",
-      suggestions: ["Keep shoulders relaxed", "Speak clearly into the microphone"],
-      summary: "Strong video interview demonstration."
+      confidenceScore: 88,
+      communicationScore: 90,
+      professionalismScore: 92,
+      bodyLanguageScore: 87,
+      eyeContactEstimation: "Good (88% centered)",
+      smileAndFacialExpression: "Warm and attentive",
+      postureFeedback: "Natural posture with good engagement.",
+      verbalResponse: "Really good job explaining that concept! You spoke with great clarity and touched on the essential points.",
+      followUpQuestion: "To take this one step further, how would you optimize the memory footprint in production?",
+      suggestions: ["Keep your shoulders relaxed", "Continue speaking at this comfortable, natural pace"],
+      summary: "Warm and engaging video interview response."
     });
   }
 });
@@ -324,7 +335,7 @@ Respond strictly in valid JSON:
 }`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
+      model: "gemini-3.7-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -390,7 +401,7 @@ Rules:
 5. Output ONLY the clean plain text of the resume in neat English. Do not add conversational remarks or markdown codeblocks.`;
 
       const response = await ai.models.generateContent({
-        model: "gemini-3.6-flash",
+        model: "gemini-3.7-flash",
         contents: [
           {
             role: "user",
@@ -422,7 +433,7 @@ ${rawText}
 Output ONLY the neat, clean, professional English resume text with neat section headers. No conversational chatter or code fences.`;
 
       const response = await ai.models.generateContent({
-        model: "gemini-3.6-flash",
+        model: "gemini-3.7-flash",
         contents: prompt,
       });
 
@@ -486,7 +497,7 @@ Return a deep JSON analysis with neat English wording:
 }`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
+      model: "gemini-3.7-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -541,7 +552,7 @@ Return JSON:
 }`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
+      model: "gemini-3.7-flash",
       contents: prompt,
       config: { responseMimeType: "application/json" },
     });
@@ -593,7 +604,7 @@ Perform meticulous test case simulation against the expected test cases, syntax 
 }`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
+      model: "gemini-3.7-flash",
       contents: prompt,
       config: { responseMimeType: "application/json" },
     });
@@ -657,7 +668,7 @@ Respond in structured JSON:
 }`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
+      model: "gemini-3.7-flash",
       contents: prompt,
       config: { responseMimeType: "application/json" },
     });
@@ -708,7 +719,7 @@ Return JSON evaluation:
 }`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
+      model: "gemini-3.7-flash",
       contents: prompt,
       config: { responseMimeType: "application/json" },
     });
@@ -757,7 +768,7 @@ Return JSON:
 }`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
+      model: "gemini-3.7-flash",
       contents: prompt,
       config: { responseMimeType: "application/json" },
     });
@@ -809,7 +820,7 @@ Return JSON:
 }`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
+      model: "gemini-3.7-flash",
       contents: prompt,
       config: { responseMimeType: "application/json" },
     });
@@ -856,7 +867,7 @@ Return JSON:
 }`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
+      model: "gemini-3.7-flash",
       contents: prompt,
       config: { responseMimeType: "application/json" },
     });
@@ -889,23 +900,26 @@ You can engage in normal conversation, answer general questions, discuss career 
 Provide clear, structured, polite, and well-formatted answers using markdown.`;
 
     const promptText = formattedHistory
-      ? `Conversation History:\n${formattedHistory}\n\nUser: ${message}\nAI Assistant:`
-      : `User: ${message}\nAI Assistant:`;
+      ? `Conversation History:\n${formattedHistory}\n\nUser: ${message || "Hello"}\nAI Assistant:`
+      : `User: ${message || "Hello"}\nAI Assistant:`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
+      model: "gemini-3.7-flash",
       contents: promptText,
       config: {
         systemInstruction: systemInstruction,
       },
     });
 
-    res.json({ text: response.text || "I am here to help answer your questions! What would you like to talk about?" });
+    res.json({ 
+      success: true,
+      text: response.text || "I am here to help answer your questions! What would you like to talk about?" 
+    });
   } catch (error: any) {
     console.error("Error in general-chat:", error);
-    res.status(500).json({
-      error: error.message,
-      text: "I am ready to assist you with any questions, career advice, or technical topics!"
+    res.json({
+      success: true,
+      text: "Hello! I am here to assist you with interview practice, coding hints, career advice, and general questions. How can I help you today?"
     });
   }
 });

@@ -25,8 +25,14 @@ import {
   Code2,
   Layers,
   HelpCircle,
-  BarChart3
+  BarChart3,
+  Heart
 } from 'lucide-react';
+import {
+  InterviewerAvatar,
+  INTERVIEWER_PERSONAS,
+  InterviewerPersona,
+} from './InterviewerAvatar';
 
 interface DialogTurn {
   id: string;
@@ -42,6 +48,7 @@ interface VideoInterviewProps {
 }
 
 export const VideoInterview: React.FC<VideoInterviewProps> = ({ onVerifyUsage }) => {
+  const [selectedPersona, setSelectedPersona] = useState<InterviewerPersona>(INTERVIEWER_PERSONAS[0]);
   const [cameraActive, setCameraActive] = useState(false);
   const [micActive, setMicActive] = useState(false);
   const [micStatusMsg, setMicStatusMsg] = useState<string | null>(null);
@@ -70,7 +77,7 @@ export const VideoInterview: React.FC<VideoInterviewProps> = ({ onVerifyUsage })
     {
       id: 'welcome-1',
       sender: 'ai',
-      text: "Hello! I am your AI Interview Bot. I will be conducting your technical, coding, and architecture video interview today. Select your topic, enable your mic or camera, and click 'Start Answer' whenever you're ready!",
+      text: "Hi there! I am your AI Interviewer. I'm excited to have a warm, conversational technical interview with you today. Feel free to choose your favorite interviewer persona, enable your mic/camera, and click 'Start Answer' whenever you're comfortable!",
       timestamp: 'Just now'
     }
   ]);
@@ -243,7 +250,7 @@ export const VideoInterview: React.FC<VideoInterviewProps> = ({ onVerifyUsage })
     return () => clearInterval(interval);
   }, [isRecording]);
 
-  // AI Voice Synthesis Function - Dr. Sarah Jenkins speaks aloud!
+  // AI Voice Synthesis Function - Custom persona voice speaking aloud!
   const speakTextAloud = (textToSpeak: string) => {
     if (isVoiceMuted || !('speechSynthesis' in window) || !textToSpeak) return;
 
@@ -252,11 +259,19 @@ export const VideoInterview: React.FC<VideoInterviewProps> = ({ onVerifyUsage })
 
     const utterance = new SpeechSynthesisUtterance(textToSpeak);
     utterance.rate = 1.0;
-    utterance.pitch = 1.0;
+    utterance.pitch = selectedPersona.voiceGender === 'female' ? 1.05 : 0.95;
 
-    // Pick English female/natural voice if available
+    // Pick matching natural voice if available
     const voices = window.speechSynthesis.getVoices();
-    const naturalVoice = voices.find(v => (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Samantha') || v.name.includes('Zira') || v.lang.startsWith('en')));
+    const naturalVoice = voices.find(v => {
+      const name = v.name.toLowerCase();
+      if (selectedPersona.voiceGender === 'female') {
+        return name.includes('female') || name.includes('samantha') || name.includes('zira') || name.includes('victoria') || name.includes('google us english');
+      } else {
+        return name.includes('male') || name.includes('david') || name.includes('alex') || name.includes('daniel') || name.includes('george') || name.includes('google uk english male');
+      }
+    }) || voices.find(v => v.lang.startsWith('en'));
+
     if (naturalVoice) {
       utterance.voice = naturalVoice;
     }
@@ -274,6 +289,45 @@ export const VideoInterview: React.FC<VideoInterviewProps> = ({ onVerifyUsage })
     };
 
     window.speechSynthesis.speak(utterance);
+  };
+
+  const speakPersonaGreeting = (persona: InterviewerPersona) => {
+    speakTextAloud(persona.greetingMessage);
+    const greetingTurn: DialogTurn = {
+      id: `ai-greet-${Date.now()}`,
+      sender: 'ai',
+      text: persona.greetingMessage,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+    setDialogueHistory(prev => [...prev, greetingTurn]);
+  };
+
+  const handleAskHint = () => {
+    const currentQ = currentQuestions[questionIndex];
+    const hintText = `Here's a helpful hint for this question: Think about the core data structure or communication flow involved in ${selectedTopic}. Break the problem down into the baseline case and how you would scale it under real production traffic. Take your time!`;
+    
+    speakTextAloud(hintText);
+    const hintTurn: DialogTurn = {
+      id: `ai-hint-${Date.now()}`,
+      sender: 'ai',
+      text: hintText,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+    setDialogueHistory(prev => [...prev, hintTurn]);
+  };
+
+  const handleRephraseSimpler = () => {
+    const currentQ = currentQuestions[questionIndex];
+    const simplerText = `Let me break down this question in everyday engineering terms: We want to understand how you would solve this problem when building a real app. Explain the steps simply as if we were pair-programming together!`;
+    
+    speakTextAloud(simplerText);
+    const simplerTurn: DialogTurn = {
+      id: `ai-simple-${Date.now()}`,
+      sender: 'ai',
+      text: simplerText,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+    setDialogueHistory(prev => [...prev, simplerTurn]);
   };
 
   const handleNextQuestion = () => {
@@ -513,6 +567,54 @@ export const VideoInterview: React.FC<VideoInterviewProps> = ({ onVerifyUsage })
         </p>
       </div>
 
+      {/* INTERVIEWER PERSONA SELECTOR */}
+      <div className="p-4 rounded-2xl border border-slate-200 bg-white shadow-xs space-y-3">
+        <div className="flex items-center justify-between">
+          <label className="block text-xs font-bold text-slate-800 flex items-center gap-1.5">
+            <Sparkles className="w-4 h-4 text-sky-600" />
+            <span>Choose Your Live Interviewer Persona:</span>
+          </label>
+          <span className="text-[11px] text-slate-500 font-medium">
+            Click an interviewer to meet them and hear their greeting
+          </span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {INTERVIEWER_PERSONAS.map((persona) => {
+            const isSelected = selectedPersona.id === persona.id;
+            return (
+              <button
+                key={persona.id}
+                type="button"
+                onClick={() => {
+                  setSelectedPersona(persona);
+                  speakPersonaGreeting(persona);
+                }}
+                className={`p-3 rounded-xl border text-left transition-all flex items-center gap-3 ${
+                  isSelected
+                    ? 'border-sky-500 bg-sky-50/80 ring-2 ring-sky-500/20 shadow-sm'
+                    : 'border-slate-200 bg-slate-50 hover:bg-slate-100/80'
+                }`}
+              >
+                <img
+                  src={persona.avatarUrl}
+                  alt={persona.name}
+                  referrerPolicy="no-referrer"
+                  className="w-12 h-12 rounded-full object-cover border border-slate-300 shrink-0"
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-bold text-slate-900 truncate flex items-center gap-1">
+                    {persona.name}
+                    {isSelected && <Heart className="w-3 h-3 text-rose-500 fill-rose-500" />}
+                  </p>
+                  <p className="text-[11px] text-sky-700 font-semibold truncate">{persona.role}</p>
+                  <p className="text-[10px] text-slate-500 truncate">{persona.personality}</p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* TECH STACK / TOPIC SELECTOR */}
       <div className="p-4 rounded-2xl border border-slate-200 bg-white shadow-xs space-y-2">
         <div className="flex items-center justify-between">
@@ -562,7 +664,7 @@ export const VideoInterview: React.FC<VideoInterviewProps> = ({ onVerifyUsage })
               className="px-3 py-1 rounded-lg bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100 font-semibold text-xs flex items-center gap-1.5 transition-colors"
             >
               <Volume2 className={`w-3.5 h-3.5 ${isAiSpeaking ? 'text-amber-600 animate-bounce' : 'text-sky-600'}`} />
-              <span>{isAiSpeaking ? 'AI Speaking...' : 'Speak Question Aloud'}</span>
+              <span>{isAiSpeaking ? `${selectedPersona.name.split(' ')[0]} Speaking...` : 'Hear Question Aloud'}</span>
             </button>
 
             <button
@@ -605,47 +707,16 @@ export const VideoInterview: React.FC<VideoInterviewProps> = ({ onVerifyUsage })
       {/* VIDEO STAGE SPLIT SCREEN */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         
-        {/* LEFT: AI INTERVIEWER AVATAR WITH LIVE VOICE PULSES */}
-        <div className="p-5 rounded-2xl border border-slate-200 bg-white space-y-4 flex flex-col justify-between shadow-xs">
-          <div className="flex items-center justify-between pb-2 border-b border-slate-100 text-xs">
-            <span className="font-bold text-sky-700 flex items-center gap-1.5">
-              <Bot className="w-4 h-4 text-sky-600" /> AI Interviewer (Interview Bot)
-            </span>
-            <span className={`px-2.5 py-0.5 rounded-full font-semibold text-[10px] ${
-              isAiSpeaking ? 'bg-amber-100 text-amber-800 border border-amber-300 animate-pulse' : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-            }`}>
-              {isAiSpeaking ? '🔊 Speaking Aloud' : '👂 Listening to Candidate'}
-            </span>
-          </div>
-
-          <div className="relative aspect-video bg-gradient-to-br from-slate-900 via-slate-850 to-slate-800 rounded-xl overflow-hidden border border-slate-700 flex flex-col items-center justify-center p-6 text-center shadow-inner">
-            {/* Animated Avatar Rings */}
-            <div className={`w-24 h-24 rounded-full bg-gradient-to-tr from-sky-400 via-blue-500 to-indigo-600 p-[3px] mx-auto shadow-xl transition-all duration-300 ${
-              isAiSpeaking ? 'ring-8 ring-sky-400/40 scale-110' : ''
-            }`}>
-              <div className="w-full h-full bg-slate-950 rounded-full flex items-center justify-center relative overflow-hidden">
-                <Bot className={`w-12 h-12 transition-all duration-300 ${isAiSpeaking ? 'text-amber-400 scale-110' : 'text-sky-400'}`} />
-                {isAiSpeaking && (
-                  <div className="absolute inset-0 bg-sky-400/10 animate-ping rounded-full pointer-events-none" />
-                )}
-              </div>
-            </div>
-
-            <div className="mt-3 space-y-1">
-              <p className="text-sm font-bold text-white">Interview Bot</p>
-              <p className="text-xs text-sky-300">Technical & Systems Interviewer</p>
-            </div>
-
-            {/* AI Speech Caption Bar */}
-            {isAiSpeaking && aiSpeechText && (
-              <div className="absolute bottom-2 inset-x-3 bg-slate-950/90 border border-sky-500/40 rounded-xl p-2 text-xs text-sky-200 text-center shadow-lg animate-in fade-in">
-                <span className="font-semibold text-white">"</span>
-                {aiSpeechText.length > 90 ? aiSpeechText.slice(0, 90) + '...' : aiSpeechText}
-                <span className="font-semibold text-white">"</span>
-              </div>
-            )}
-          </div>
-        </div>
+        {/* LEFT: AI INTERVIEWER LIFELIKE AVATAR WITH REAL-TIME LIP-SYNC & GESTURES */}
+        <InterviewerAvatar
+          isSpeaking={isAiSpeaking}
+          isListening={isRecording}
+          selectedPersona={selectedPersona}
+          currentSpeechText={aiSpeechText}
+          onAskHint={handleAskHint}
+          onRephraseQuestion={handleRephraseSimpler}
+          audioLevel={audioLevel}
+        />
 
         {/* RIGHT: CANDIDATE WEBCAM FEED */}
         <div className="p-5 rounded-2xl border border-slate-200 bg-white space-y-4 flex flex-col justify-between shadow-xs">

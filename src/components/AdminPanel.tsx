@@ -59,12 +59,16 @@ export const AdminPanel: React.FC = () => {
   const [webinarsList, setWebinarsList] = useState<WebinarItem[]>([]);
   const [webinarLoading, setWebinarLoading] = useState(false);
   const [webinarSuccessMsg, setWebinarSuccessMsg] = useState('');
+  const [deletingWebinarId, setDeletingWebinarId] = useState<string | null>(null);
+  const [confirmDeleteWebinarId, setConfirmDeleteWebinarId] = useState<string | null>(null);
 
   // Registrations state
   const [registrationsList, setRegistrationsList] = useState<WebinarRegistration[]>([]);
   const [regLoading, setRegLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedWebinarFilter, setSelectedWebinarFilter] = useState('ALL');
+  const [deletingRegId, setDeletingRegId] = useState<string | null>(null);
+  const [confirmDeleteRegId, setConfirmDeleteRegId] = useState<string | null>(null);
 
   // Webinar form state
   const [name, setName] = useState('');
@@ -232,9 +236,11 @@ export const AdminPanel: React.FC = () => {
     }
   };
 
-  const handleDeleteWebinar = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this webinar? It will be removed in real-time from all devices across the world.')) return;
+  const handleDeleteWebinar = async (id: string, webinarName?: string) => {
     try {
+      setDeletingWebinarId(id);
+      setConfirmDeleteWebinarId(null);
+
       // 1. Delete from Firestore real-time database
       await deleteWebinarFromFirestore(id);
 
@@ -245,17 +251,23 @@ export const AdminPanel: React.FC = () => {
         // Fallback
       }
 
-      // Optimistically remove from local list if not yet caught by snapshot
+      // Optimistically update list
       setWebinarsList((prev) => prev.filter((w) => w.id !== id));
+      setWebinarSuccessMsg(`Webinar "${webinarName || 'Item'}" successfully deleted from Firestore and removed worldwide!`);
+      setTimeout(() => setWebinarSuccessMsg(''), 5000);
     } catch (err) {
       console.error('Error deleting webinar:', err);
       alert('Failed to delete webinar from Firestore.');
+    } finally {
+      setDeletingWebinarId(null);
     }
   };
 
   const handleDeleteRegistration = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this registration?')) return;
     try {
+      setDeletingRegId(id);
+      setConfirmDeleteRegId(null);
+
       // 1. Delete from Firestore
       await deleteWebinarRegistrationFromFirestore(id);
 
@@ -270,6 +282,8 @@ export const AdminPanel: React.FC = () => {
     } catch (err) {
       console.error('Error deleting registration:', err);
       alert('Failed to delete registration from Firestore.');
+    } finally {
+      setDeletingRegId(null);
     }
   };
 
@@ -879,14 +893,40 @@ export const AdminPanel: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-2 self-end sm:self-center">
-                      <button
-                        onClick={() => handleDeleteWebinar(webinar.id)}
-                        className="p-2 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition-colors flex items-center gap-1 text-xs"
-                        title="Delete Webinar"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        <span className="hidden sm:inline">Delete</span>
-                      </button>
+                      {confirmDeleteWebinarId === webinar.id ? (
+                        <div className="flex items-center gap-1.5 animate-fadeIn">
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteWebinar(webinar.id, webinar.name)}
+                            disabled={deletingWebinarId === webinar.id}
+                            className="px-2.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-bold shadow transition-colors flex items-center gap-1"
+                          >
+                            {deletingWebinarId === webinar.id ? (
+                              <RefreshCw className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-3 h-3" />
+                            )}
+                            <span>Confirm Worldwide Delete</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setConfirmDeleteWebinarId(null)}
+                            className="px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px]"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setConfirmDeleteWebinarId(webinar.id)}
+                          className="p-2 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition-colors flex items-center gap-1 text-xs cursor-pointer"
+                          title="Delete Webinar Worldwide"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">Delete</span>
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -1055,13 +1095,36 @@ export const AdminPanel: React.FC = () => {
                         <Mail className="w-3.5 h-3.5" />
                         <span className="hidden sm:inline">Email</span>
                       </a>
-                      <button
-                        onClick={() => handleDeleteRegistration(reg.id)}
-                        className="p-2 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition-colors flex items-center gap-1 text-xs"
-                        title="Remove Registration"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      
+                      {confirmDeleteRegId === reg.id ? (
+                        <div className="flex items-center gap-1 animate-fadeIn">
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteRegistration(reg.id)}
+                            disabled={deletingRegId === reg.id}
+                            className="px-2 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-bold shadow flex items-center gap-1"
+                          >
+                            {deletingRegId === reg.id ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                            <span>Delete</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setConfirmDeleteRegId(null)}
+                            className="px-1.5 py-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white text-[10px]"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setConfirmDeleteRegId(reg.id)}
+                          className="p-2 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition-colors flex items-center gap-1 text-xs cursor-pointer"
+                          title="Remove Registration"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}

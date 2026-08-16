@@ -80,8 +80,13 @@ export const GeneralChat: React.FC = () => {
         }),
       });
 
-      const data = await res.json();
-      const aiReplyText = data.text || "I am glad to chat with you! Let me know if you need any detailed explanations or guidance.";
+      let aiReplyText = "I am glad to chat with you! Let me know if you need any detailed explanations or guidance.";
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.text) {
+          aiReplyText = data.text;
+        }
+      }
 
       const aiMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -94,17 +99,21 @@ export const GeneralChat: React.FC = () => {
 
       // Speak aloud if voice isn't muted
       if (!isVoiceMuted && 'speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(aiReplyText.replace(/[*#`]/g, ''));
-        utterance.rate = 1.0;
-        window.speechSynthesis.speak(utterance);
+        try {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(aiReplyText.replace(/[*#`]/g, ''));
+          utterance.rate = 1.0;
+          window.speechSynthesis.speak(utterance);
+        } catch (synthErr) {
+          console.warn('Speech synthesis error:', synthErr);
+        }
       }
     } catch (err) {
       console.error('Error in general chat:', err);
       const fallbackMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
         sender: 'ai',
-        text: "I'm available to help you with career guidance, tech topics, or general Q&A. What's on your mind?",
+        text: "I am here to help answer questions, share career advice, or practice interview topics. What would you like to discuss?",
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
       setMessages((prev) => [...prev, fallbackMsg]);
@@ -120,17 +129,17 @@ export const GeneralChat: React.FC = () => {
   };
 
   const handleClearChat = () => {
-    if (window.confirm('Clear conversation history?')) {
+    try {
       window.speechSynthesis?.cancel();
-      setMessages([
-        {
-          id: '1',
-          sender: 'ai',
-          text: "Chat cleared! How can I assist you now?",
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        },
-      ]);
-    }
+    } catch (e) {}
+    setMessages([
+      {
+        id: '1',
+        sender: 'ai',
+        text: "Chat cleared! How can I assist you now?",
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      },
+    ]);
   };
 
   return (

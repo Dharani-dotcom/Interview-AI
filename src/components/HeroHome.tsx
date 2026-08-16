@@ -57,6 +57,9 @@ export const HeroHome: React.FC<HeroHomeProps> = ({
 }) => {
   const [webinars, setWebinars] = useState<WebinarItem[]>([]);
   const [loadingWebinars, setLoadingWebinars] = useState(false);
+  const [clickedModuleId, setClickedModuleId] = useState<string | null>(null);
+  const [activePartnerFilter, setActivePartnerFilter] = useState<string>('All');
+  const [clickedPartner, setClickedPartner] = useState<string | null>(null);
 
   // Candidate Registration Modal State
   const [selectedWebinar, setSelectedWebinar] = useState<WebinarItem | null>(null);
@@ -266,19 +269,75 @@ export const HeroHome: React.FC<HeroHomeProps> = ({
     <div className="space-y-16 pt-4">
       {/* HERO SECTION */}
       <section className="relative overflow-hidden pt-8 pb-12 px-4 sm:px-6 lg:px-8">
+        {/* Dynamic Background Aura & Suited Executive Figure Moving Behind Headline */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0 overflow-hidden">
+          {/* Ambient Radial Glow Backdrop */}
+          <div className="absolute w-[600px] h-[350px] bg-gradient-to-r from-sky-300/25 via-indigo-300/20 to-purple-300/25 rounded-full blur-3xl animate-suit-glow transform -translate-y-6" />
+
+          {/* Suited Person Moving Left-to-Right Behind Headline */}
+          <div className="animate-suit-person relative flex flex-col items-center justify-center opacity-30 sm:opacity-40 hover:opacity-75 transition-opacity duration-700 select-none transform -translate-y-4">
+            
+            {/* Suited Professional Silhouette & Render */}
+            <div className="relative w-48 sm:w-64 h-64 sm:h-80 flex flex-col items-center justify-end">
+              {/* Head & Hair */}
+              <div className="w-16 sm:w-20 h-20 sm:h-24 rounded-3xl bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 border border-slate-700 shadow-2xl relative flex items-center justify-center overflow-hidden">
+                {/* Hair cut contour */}
+                <div className="absolute top-0 inset-x-0 h-7 bg-slate-950 rounded-b-xl" />
+                {/* Subtle Facial silhouette features */}
+                <div className="w-8 h-8 rounded-full bg-slate-700/60 border border-slate-600/40 mt-3" />
+                {/* Executive Headset / Mic indicator */}
+                <div className="absolute right-1 bottom-4 w-4 h-1.5 bg-sky-400 rounded-full animate-pulse shadow-sm" />
+              </div>
+
+              {/* Collar & Tie Layer */}
+              <div className="w-20 sm:w-24 h-8 bg-slate-100 flex items-center justify-center relative -mt-2 rounded-t-lg z-10 shadow-md">
+                {/* White Dress Shirt V-Neck */}
+                <div className="w-8 h-full bg-white flex justify-center">
+                  {/* Sky/Indigo Striped Silk Tie */}
+                  <div className="w-3.5 h-12 bg-gradient-to-b from-sky-600 to-indigo-800 rounded-b-md shadow-xs" />
+                </div>
+              </div>
+
+              {/* Bespoke Black Suit Blazer / Torso */}
+              <div className="w-44 sm:w-56 h-40 sm:h-48 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 rounded-t-3xl border-t-2 border-x-2 border-slate-700/80 shadow-2xl relative flex justify-between px-3 pt-2">
+                {/* Left Lapel */}
+                <div className="w-10 sm:w-12 h-32 bg-slate-900 border-r border-slate-800 transform rotate-6 rounded-tl-xl shadow-md flex items-start justify-center pt-3">
+                  {/* Pocket Square */}
+                  <div className="w-4 h-1.5 bg-sky-400 rounded-xs shadow-xs" />
+                </div>
+
+                {/* Center Buttons & Slit */}
+                <div className="flex flex-col items-center justify-start gap-4 pt-6">
+                  <div className="w-2.5 h-2.5 rounded-full bg-slate-700 border border-slate-600 shadow-inner" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-slate-700 border border-slate-600 shadow-inner" />
+                </div>
+
+                {/* Right Lapel */}
+                <div className="w-10 sm:w-12 h-32 bg-slate-900 border-l border-slate-800 transform -rotate-6 rounded-tr-xl shadow-md" />
+              </div>
+
+              {/* Floating Coach Role Badge */}
+              <div className="absolute -top-4 px-3 py-1 rounded-full bg-slate-900/90 text-sky-300 border border-sky-500/40 text-[10px] font-mono font-bold tracking-wide shadow-lg flex items-center gap-1.5 backdrop-blur-md">
+                <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-ping" />
+                <span>AI Interviewer & Coach</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="max-w-4xl mx-auto text-center relative z-10 space-y-6">
           <div className="flex items-center justify-center">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-sky-50 border border-sky-200 text-xs font-bold text-sky-700 shadow-xs">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-sky-50/90 backdrop-blur-xs border border-sky-200 text-xs font-bold text-sky-700 shadow-xs">
               <Sparkles className="w-4 h-4 text-sky-600" />
               <span>AI-Powered Interview Platform</span>
             </div>
           </div>
 
-          <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-slate-900 leading-[1.15] text-center">
+          <h1 className="text-4xl sm:text-6xl font-black tracking-tight text-slate-900 leading-[1.15] text-center drop-shadow-xs">
             <span className="gradient-text">Master Every Technical & Behavioral Interview</span>
           </h1>
 
-          <p className="max-w-2xl mx-auto text-base text-slate-600 font-normal leading-relaxed">
+          <p className="max-w-2xl mx-auto text-base text-slate-700 font-medium leading-relaxed bg-white/60 sm:bg-transparent backdrop-blur-xs sm:backdrop-blur-none rounded-xl p-2 sm:p-0">
             Practice technical, HR and behavioral interviews through AI Chat, AI Voice and AI Video simulations.
             Get real-time feedback, resume ATS scans, and normal AI conversation.
           </p>
@@ -326,24 +385,141 @@ export const HeroHome: React.FC<HeroHomeProps> = ({
             )}
           </div>
 
-          {/* Stats Bar */}
-          <div className="pt-8 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto text-center">
-            <div className="p-4 rounded-xl glass-card border-slate-200 shadow-xs">
-              <p className="text-2xl font-bold text-sky-600">98.4%</p>
-              <p className="text-xs text-slate-500 mt-1">Offer Success Rate</p>
+          {/* JUMPING & ANIMATED STATS CARDS */}
+          <div className="pt-6 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto text-center">
+            <div className="p-4 rounded-xl glass-card border-sky-200/80 shadow-sm transition-all hover:scale-105 animate-jump group cursor-default">
+              <div className="flex items-center justify-center gap-1.5 mb-1">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                  Verified
+                </span>
+              </div>
+              <p className="text-3xl font-extrabold text-sky-600 tracking-tight group-hover:text-sky-500 transition-colors">
+                98.4%
+              </p>
+              <p className="text-xs font-semibold text-slate-700 mt-1">Offer Success Rate</p>
+              <p className="text-[10px] text-slate-400">FAANG & Top Tech</p>
             </div>
-            <div className="p-4 rounded-xl glass-card border-slate-200 shadow-xs">
-              <p className="text-2xl font-bold text-blue-600">120K+</p>
-              <p className="text-xs text-slate-500 mt-1">Mock Sessions Run</p>
+
+            <div className="p-4 rounded-xl glass-card border-blue-200/80 shadow-sm transition-all hover:scale-105 animate-jump-delayed-1 group cursor-default">
+              <div className="flex items-center justify-center gap-1.5 mb-1">
+                <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                <span className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
+                  Active
+                </span>
+              </div>
+              <p className="text-3xl font-extrabold text-blue-600 tracking-tight group-hover:text-blue-500 transition-colors">
+                120K+
+              </p>
+              <p className="text-xs font-semibold text-slate-700 mt-1">Mock Sessions Run</p>
+              <p className="text-[10px] text-slate-400">Global Candidates</p>
             </div>
-            <div className="p-4 rounded-xl glass-card border-slate-200 shadow-xs">
-              <p className="text-2xl font-bold text-indigo-600">50+ Roles</p>
-              <p className="text-xs text-slate-500 mt-1">Tech & Executive</p>
+
+            <div className="p-4 rounded-xl glass-card border-indigo-200/80 shadow-sm transition-all hover:scale-105 animate-jump-delayed-2 group cursor-default">
+              <div className="flex items-center justify-center gap-1.5 mb-1">
+                <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+                <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">
+                  Coverage
+                </span>
+              </div>
+              <p className="text-3xl font-extrabold text-indigo-600 tracking-tight group-hover:text-indigo-500 transition-colors">
+                50+ Roles
+              </p>
+              <p className="text-xs font-semibold text-slate-700 mt-1">Tech & Executive</p>
+              <p className="text-[10px] text-slate-400">Junior to Staff Level</p>
             </div>
-            <div className="p-4 rounded-xl glass-card border-slate-200 shadow-xs">
-              <p className="text-2xl font-bold text-emerald-600">&lt; 1 sec</p>
-              <p className="text-xs text-slate-500 mt-1">AI Response Latency</p>
+
+            <div className="p-4 rounded-xl glass-card border-emerald-200/80 shadow-sm transition-all hover:scale-105 animate-jump-delayed-3 group cursor-default">
+              <div className="flex items-center justify-center gap-1.5 mb-1">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                  Real-time
+                </span>
+              </div>
+              <p className="text-3xl font-extrabold text-emerald-600 tracking-tight group-hover:text-emerald-500 transition-colors">
+                &lt; 1 sec
+              </p>
+              <p className="text-xs font-semibold text-slate-700 mt-1">AI Response Latency</p>
+              <p className="text-[10px] text-slate-400">Instant Lip-Sync & Speech</p>
             </div>
+          </div>
+        </div>
+
+        {/* CONTINUOUS LEFT-TO-RIGHT LIVE METRICS TICKER MARQUEE */}
+        <div className="mt-8 border-y border-slate-200/80 bg-gradient-to-r from-sky-50/70 via-indigo-50/50 to-purple-50/70 py-3 overflow-hidden shadow-inner relative">
+          {/* Subtle gradient side fades */}
+          <div className="absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none" />
+          <div className="absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none" />
+
+          {/* Left-to-Right Moving Ribbon */}
+          <div className="animate-marquee-ltr flex items-center gap-6 text-xs font-bold text-slate-700 select-none">
+            {/* Set 1 */}
+            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-sky-300 text-sky-700 shadow-2xs">
+              <span className="w-2 h-2 rounded-full bg-sky-500 animate-ping" />
+              <span className="font-extrabold text-sky-800">98.4%</span> Offer Success Rate
+            </span>
+            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-blue-300 text-blue-700 shadow-2xs">
+              <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+              <span className="font-extrabold text-blue-800">120k+</span> Candidates Prepared
+            </span>
+            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-indigo-300 text-indigo-700 shadow-2xs">
+              <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+              <span className="font-extrabold text-indigo-800">50+ Roles</span> Covered
+            </span>
+            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-emerald-300 text-emerald-700 shadow-2xs">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+              <span className="font-extrabold text-emerald-800">&lt; 1s Latency</span> Instant AI
+            </span>
+            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-amber-300 text-amber-700 shadow-2xs">
+              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+              <span className="font-extrabold text-amber-800">$185k</span> Avg FAANG Offer
+            </span>
+            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-rose-300 text-rose-700 shadow-2xs">
+              <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+              <span className="font-extrabold text-rose-800">4.9 / 5.0</span> User Rating
+            </span>
+            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-teal-300 text-teal-700 shadow-2xs">
+              <span className="w-2 h-2 rounded-full bg-teal-500 animate-ping" />
+              <span className="font-extrabold text-teal-800">850+</span> Hiring Companies
+            </span>
+            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-purple-300 text-purple-700 shadow-2xs">
+              <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
+              <span className="font-extrabold text-purple-800">99.2%</span> ATS Resume Pass
+            </span>
+
+            {/* Set 2 (Duplicate for seamless loop) */}
+            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-sky-300 text-sky-700 shadow-2xs">
+              <span className="w-2 h-2 rounded-full bg-sky-500 animate-ping" />
+              <span className="font-extrabold text-sky-800">98.4%</span> Offer Success Rate
+            </span>
+            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-blue-300 text-blue-700 shadow-2xs">
+              <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+              <span className="font-extrabold text-blue-800">120k+</span> Candidates Prepared
+            </span>
+            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-indigo-300 text-indigo-700 shadow-2xs">
+              <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+              <span className="font-extrabold text-indigo-800">50+ Roles</span> Covered
+            </span>
+            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-emerald-300 text-emerald-700 shadow-2xs">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+              <span className="font-extrabold text-emerald-800">&lt; 1s Latency</span> Instant AI
+            </span>
+            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-amber-300 text-amber-700 shadow-2xs">
+              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+              <span className="font-extrabold text-amber-800">$185k</span> Avg FAANG Offer
+            </span>
+            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-rose-300 text-rose-700 shadow-2xs">
+              <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+              <span className="font-extrabold text-rose-800">4.9 / 5.0</span> User Rating
+            </span>
+            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-teal-300 text-teal-700 shadow-2xs">
+              <span className="w-2 h-2 rounded-full bg-teal-500 animate-ping" />
+              <span className="font-extrabold text-teal-800">850+</span> Hiring Companies
+            </span>
+            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-purple-300 text-purple-700 shadow-2xs">
+              <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
+              <span className="font-extrabold text-purple-800">99.2%</span> ATS Resume Pass
+            </span>
           </div>
         </div>
       </section>
@@ -351,52 +527,223 @@ export const HeroHome: React.FC<HeroHomeProps> = ({
       {/* FEATURE CARDS GRID */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center space-y-2 mb-10">
-          <h2 className="text-2xl font-extrabold text-slate-900">Professional Interview Preparation Modules</h2>
-          <p className="text-slate-500 text-xs max-w-xl mx-auto">
-            Everything you need to prepare for top tech companies and accelerate your career.
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-100 text-sky-800 text-[11px] font-bold uppercase tracking-wider mb-1">
+            <Sparkles className="w-3.5 h-3.5 text-sky-600 animate-spin" />
+            <span>Interactive Interview Suite</span>
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
+            Professional Interview Preparation Modules
+          </h2>
+          <p className="text-slate-600 text-xs max-w-xl mx-auto">
+            Click any module below to practice live — cards feature dynamic interactive jump feedback and instant AI evaluation!
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {features.map((item) => (
-            <div
-              key={item.id}
-              onClick={() => {
-                if (!user?.isLoggedIn && item.id !== 'general-chat') {
-                  onOpenAuth();
-                } else {
-                  setActiveTab(item.id as ActiveTab);
-                }
-              }}
-              className="glass-card glass-card-hover p-6 rounded-2xl cursor-pointer group flex flex-col justify-between"
-            >
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 group-hover:border-sky-400 transition-colors">
-                    {item.icon}
-                  </div>
-                  <span className="px-2.5 py-1 rounded-full bg-slate-100 border border-slate-200 text-[10px] font-semibold text-slate-700">
-                    {item.tag}
-                  </span>
-                </div>
-                <h3 className="text-base font-bold text-slate-900 group-hover:text-sky-700 transition-colors mb-2">
-                  {item.title}
-                </h3>
-                <p className="text-xs text-slate-600 leading-relaxed">{item.desc}</p>
-              </div>
+          {features.map((item, index) => {
+            const isJustClicked = clickedModuleId === item.id;
 
-              <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-sky-600 group-hover:translate-x-1 transition-transform">
-                <span>
-                  {item.id === 'general-chat'
-                    ? 'Open Free Chat'
-                    : user?.isLoggedIn
-                    ? 'Open Module'
-                    : 'Sign In to Unlock (1 Free Use)'}
+            return (
+              <div
+                key={item.id}
+                onClick={() => {
+                  setClickedModuleId(item.id);
+                  setTimeout(() => {
+                    setClickedModuleId(null);
+                    if (!user?.isLoggedIn && item.id !== 'general-chat') {
+                      onOpenAuth();
+                    } else {
+                      setActiveTab(item.id as ActiveTab);
+                    }
+                  }, 300);
+                }}
+                className={`glass-card p-6 rounded-2xl cursor-pointer group flex flex-col justify-between transition-all duration-300 transform select-none ${
+                  isJustClicked
+                    ? 'animate-click-jump ring-4 ring-sky-400 bg-sky-50/90 shadow-2xl scale-105'
+                    : 'hover:-translate-y-2.5 hover:shadow-xl hover:border-sky-400 active:scale-95'
+                }`}
+                style={{
+                  animationDelay: `${(index % 3) * 0.15}s`
+                }}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 group-hover:border-sky-400 group-hover:bg-sky-50 transition-colors">
+                      {item.icon}
+                    </div>
+                    <span className="px-2.5 py-1 rounded-full bg-slate-100 border border-slate-200 text-[10px] font-semibold text-slate-700 group-hover:bg-sky-100 group-hover:text-sky-800 transition-colors">
+                      {item.tag}
+                    </span>
+                  </div>
+                  <h3 className="text-base font-bold text-slate-900 group-hover:text-sky-700 transition-colors mb-2 flex items-center justify-between">
+                    <span>{item.title}</span>
+                    <span className="text-xs text-sky-500 opacity-0 group-hover:opacity-100 transition-opacity">⚡ Click to Jump</span>
+                  </h3>
+                  <p className="text-xs text-slate-600 leading-relaxed">{item.desc}</p>
+                </div>
+
+                <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-sky-600 group-hover:translate-x-1.5 transition-transform">
+                  <span className="flex items-center gap-1.5">
+                    {item.id === 'general-chat'
+                      ? 'Open Free Chat'
+                      : user?.isLoggedIn
+                      ? 'Open Module'
+                      : 'Sign In to Unlock (1 Free Use)'}
+                  </span>
+                  <ArrowRight className="w-4 h-4" />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* ============================================================ */}
+      {/* 850+ HIRING PARTNERS SHOWCASE SECTION (REVIVED & DEDICATED)  */}
+      {/* ============================================================ */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+        <div className="p-8 sm:p-10 rounded-3xl bg-gradient-to-b from-white via-slate-50 to-sky-50/40 border border-sky-200 shadow-xl space-y-8 relative overflow-hidden">
+          
+          {/* Header & Jumping Stat Badges */}
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-slate-200">
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold border border-emerald-300">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                <span>850+ Verified Global Hiring Partners</span>
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
+                <span>Top Companies Hiring Our Candidates</span>
+                <span className="text-sm font-semibold px-3 py-1 rounded-full bg-sky-500 text-white animate-pulse">
+                  Direct Referrals
                 </span>
-                <ArrowRight className="w-4 h-4" />
+              </h2>
+              <p className="text-xs text-slate-600 max-w-2xl leading-relaxed">
+                Over <strong>850+ tier-1 product companies, startups, and tech giants</strong> actively interview and hire candidates prepared on our AI platform.
+              </p>
+            </div>
+
+            {/* Jumping Hiring Stats Bar */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+              <div className="p-3.5 rounded-2xl bg-white border border-sky-200 shadow-sm animate-jump">
+                <p className="text-2xl font-black text-sky-600">850+</p>
+                <p className="text-[10px] font-bold text-slate-600">Partner Companies</p>
+              </div>
+              <div className="p-3.5 rounded-2xl bg-white border border-emerald-200 shadow-sm animate-jump-delayed-1">
+                <p className="text-2xl font-black text-emerald-600">94.8%</p>
+                <p className="text-[10px] font-bold text-slate-600">Hire Conversion</p>
+              </div>
+              <div className="p-3.5 rounded-2xl bg-white border border-indigo-200 shadow-sm animate-jump-delayed-2">
+                <p className="text-2xl font-black text-indigo-600">14.2K+</p>
+                <p className="text-[10px] font-bold text-slate-600">Offers Accepted</p>
+              </div>
+              <div className="p-3.5 rounded-2xl bg-white border border-amber-200 shadow-sm animate-jump-delayed-3">
+                <p className="text-2xl font-black text-amber-600">$185k</p>
+                <p className="text-[10px] font-bold text-slate-600">Avg Tech Offer</p>
               </div>
             </div>
-          ))}
+          </div>
+
+          {/* Hiring Partner Logo Marquee Ribbon (Left-to-Right Moving) */}
+          <div className="space-y-4">
+            <p className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between">
+              <span>🚀 Tier-1 Tech Giants & Global Hiring Ecosystem</span>
+              <span className="text-[11px] text-slate-500 font-normal">Hover to pause • Click company to jump</span>
+            </p>
+
+            {/* Row 1: Left to Right Marquee */}
+            <div className="py-2 overflow-hidden bg-white/80 rounded-2xl border border-slate-200 shadow-2xs relative">
+              <div className="animate-marquee-ltr flex items-center gap-4 text-xs font-bold text-slate-800">
+                {[
+                  { name: 'Google', role: 'SDE II / AI Research', color: 'border-blue-300 bg-blue-50 text-blue-800', icon: '🔵' },
+                  { name: 'Microsoft', role: 'Full Stack & Azure', color: 'border-sky-300 bg-sky-50 text-sky-800', icon: '🟦' },
+                  { name: 'Amazon', role: 'AWS & SDE III', color: 'border-amber-300 bg-amber-50 text-amber-900', icon: '🟧' },
+                  { name: 'Meta', role: 'ML Infra & React', color: 'border-indigo-300 bg-indigo-50 text-indigo-800', icon: '🌐' },
+                  { name: 'Apple', role: 'iOS & Systems Core', color: 'border-slate-300 bg-slate-100 text-slate-900', icon: '🍎' },
+                  { name: 'Netflix', role: 'Distributed Systems', color: 'border-rose-300 bg-rose-50 text-rose-800', icon: '🍿' },
+                  { name: 'Nvidia', role: 'CUDA & LLM Hardware', color: 'border-emerald-300 bg-emerald-50 text-emerald-800', icon: '🟢' },
+                  { name: 'Uber', role: 'Real-time Algorithms', color: 'border-slate-400 bg-slate-100 text-slate-800', icon: '🚗' },
+                  { name: 'Stripe', role: 'FinTech Platform', color: 'border-purple-300 bg-purple-50 text-purple-800', icon: '💳' },
+                  { name: 'Airbnb', role: 'Frontend & Growth', color: 'border-rose-300 bg-rose-50 text-rose-700', icon: '🏠' },
+                  { name: 'Salesforce', role: 'Cloud Architect', color: 'border-cyan-300 bg-cyan-50 text-cyan-800', icon: '☁️' },
+                  { name: 'Adobe', role: 'Creative Cloud & AI', color: 'border-red-300 bg-red-50 text-red-800', icon: '🎨' },
+                  // Duplicated for infinite seamless marquee loop
+                  { name: 'Google', role: 'SDE II / AI Research', color: 'border-blue-300 bg-blue-50 text-blue-800', icon: '🔵' },
+                  { name: 'Microsoft', role: 'Full Stack & Azure', color: 'border-sky-300 bg-sky-50 text-sky-800', icon: '🟦' },
+                  { name: 'Amazon', role: 'AWS & SDE III', color: 'border-amber-300 bg-amber-50 text-amber-900', icon: '🟧' },
+                  { name: 'Meta', role: 'ML Infra & React', color: 'border-indigo-300 bg-indigo-50 text-indigo-800', icon: '🌐' },
+                  { name: 'Apple', role: 'iOS & Systems Core', color: 'border-slate-300 bg-slate-100 text-slate-900', icon: '🍎' },
+                  { name: 'Netflix', role: 'Distributed Systems', color: 'border-rose-300 bg-rose-50 text-rose-800', icon: '🍿' },
+                  { name: 'Nvidia', role: 'CUDA & LLM Hardware', color: 'border-emerald-300 bg-emerald-50 text-emerald-800', icon: '🟢' },
+                  { name: 'Uber', role: 'Real-time Algorithms', color: 'border-slate-400 bg-slate-100 text-slate-800', icon: '🚗' },
+                  { name: 'Stripe', role: 'FinTech Platform', color: 'border-purple-300 bg-purple-50 text-purple-800', icon: '💳' },
+                  { name: 'Airbnb', role: 'Frontend & Growth', color: 'border-rose-300 bg-rose-50 text-rose-700', icon: '🏠' },
+                  { name: 'Salesforce', role: 'Cloud Architect', color: 'border-cyan-300 bg-cyan-50 text-cyan-800', icon: '☁️' },
+                  { name: 'Adobe', role: 'Creative Cloud & AI', color: 'border-red-300 bg-red-50 text-red-800', icon: '🎨' },
+                ].map((co, idx) => (
+                  <button
+                    key={`${co.name}-${idx}`}
+                    type="button"
+                    onClick={() => {
+                      setClickedPartner(co.name);
+                      setTimeout(() => setClickedPartner(null), 500);
+                    }}
+                    className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border ${co.color} transition-all duration-300 transform shadow-xs ${
+                      clickedPartner === co.name ? 'animate-click-jump scale-110 ring-2 ring-sky-500' : 'hover:scale-105 active:scale-95'
+                    }`}
+                  >
+                    <span>{co.icon}</span>
+                    <span className="font-extrabold">{co.name}</span>
+                    <span className="text-[10px] opacity-75 font-medium">({co.role})</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Row 2: Right to Left Marquee */}
+            <div className="py-2 overflow-hidden bg-white/80 rounded-2xl border border-slate-200 shadow-2xs relative">
+              <div className="animate-marquee-rtl flex items-center gap-4 text-xs font-bold text-slate-800">
+                {[
+                  { name: 'Goldman Sachs', role: 'Quant & Java Core', color: 'border-blue-300 bg-blue-50 text-blue-900', icon: '🏦' },
+                  { name: 'JPMorgan Chase', role: 'FinTech Architect', color: 'border-indigo-300 bg-indigo-50 text-indigo-900', icon: '🏛️' },
+                  { name: 'Spotify', role: 'Backend Data Eng', color: 'border-emerald-300 bg-emerald-50 text-emerald-800', icon: '🎧' },
+                  { name: 'Oracle', role: 'Database & Cloud', color: 'border-rose-300 bg-rose-50 text-rose-800', icon: '💾' },
+                  { name: 'Cisco', role: 'Security & Networks', color: 'border-teal-300 bg-teal-50 text-teal-800', icon: '📡' },
+                  { name: 'Atlassian', role: 'Jira & DevOps', color: 'border-sky-300 bg-sky-50 text-sky-800', icon: '⚡' },
+                  { name: 'ByteDance', role: 'Recommendation AI', color: 'border-cyan-300 bg-cyan-50 text-cyan-900', icon: '🎵' },
+                  { name: 'Walmart Labs', role: 'Retail Scale E-comm', color: 'border-amber-300 bg-amber-50 text-amber-800', icon: '🛒' },
+                  { name: 'PayPal', role: 'Payment Gateway', color: 'border-blue-300 bg-blue-50 text-blue-800', icon: '💰' },
+                  { name: 'Swiggy & Zomato', role: 'Hyperlocal Logistics', color: 'border-orange-300 bg-orange-50 text-orange-800', icon: '🛵' },
+                  // Duplicated for infinite seamless marquee loop
+                  { name: 'Goldman Sachs', role: 'Quant & Java Core', color: 'border-blue-300 bg-blue-50 text-blue-900', icon: '🏦' },
+                  { name: 'JPMorgan Chase', role: 'FinTech Architect', color: 'border-indigo-300 bg-indigo-50 text-indigo-900', icon: '🏛️' },
+                  { name: 'Spotify', role: 'Backend Data Eng', color: 'border-emerald-300 bg-emerald-50 text-emerald-800', icon: '🎧' },
+                  { name: 'Oracle', role: 'Database & Cloud', color: 'border-rose-300 bg-rose-50 text-rose-800', icon: '💾' },
+                  { name: 'Cisco', role: 'Security & Networks', color: 'border-teal-300 bg-teal-50 text-teal-800', icon: '📡' },
+                  { name: 'Atlassian', role: 'Jira & DevOps', color: 'border-sky-300 bg-sky-50 text-sky-800', icon: '⚡' },
+                  { name: 'ByteDance', role: 'Recommendation AI', color: 'border-cyan-300 bg-cyan-50 text-cyan-900', icon: '🎵' },
+                  { name: 'Walmart Labs', role: 'Retail Scale E-comm', color: 'border-amber-300 bg-amber-50 text-amber-800', icon: '🛒' },
+                  { name: 'PayPal', role: 'Payment Gateway', color: 'border-blue-300 bg-blue-50 text-blue-800', icon: '💰' },
+                  { name: 'Swiggy & Zomato', role: 'Hyperlocal Logistics', color: 'border-orange-300 bg-orange-50 text-orange-800', icon: '🛵' },
+                ].map((co, idx) => (
+                  <button
+                    key={`${co.name}-${idx}`}
+                    type="button"
+                    onClick={() => {
+                      setClickedPartner(co.name);
+                      setTimeout(() => setClickedPartner(null), 500);
+                    }}
+                    className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border ${co.color} transition-all duration-300 transform shadow-xs ${
+                      clickedPartner === co.name ? 'animate-click-jump scale-110 ring-2 ring-sky-500' : 'hover:scale-105 active:scale-95'
+                    }`}
+                  >
+                    <span>{co.icon}</span>
+                    <span className="font-extrabold">{co.name}</span>
+                    <span className="text-[10px] opacity-75 font-medium">({co.role})</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -418,6 +765,7 @@ export const HeroHome: React.FC<HeroHomeProps> = ({
               <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
                 Unlock Full AI Interview & Coding Access
               </h2>
+
               <p className="text-xs text-slate-300 mt-1 max-w-2xl">
                 Start with 1 free trial session across any module. Upgrade anytime to access coding sandboxes, mock voice/video interviews, ATS resume diagnostics, and system design evaluations.
               </p>
