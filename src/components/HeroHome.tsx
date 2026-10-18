@@ -39,7 +39,8 @@ import {
   Lock,
   CheckCheck,
   Brain,
-  GraduationCap
+  GraduationCap,
+  Bug
 } from 'lucide-react';
 import { InterviewProductShowcase } from './InterviewProductShowcase';
 
@@ -169,6 +170,14 @@ export const HeroHome: React.FC<HeroHomeProps> = ({
   };
 
   const features = [
+    {
+      id: 'debug-interview',
+      tab: 'debug-interview',
+      title: 'AI Bug-Hunting & Fix Wrong Code (32 Qs)',
+      desc: 'Given broken production & interview code across 32 Basic-to-High challenges (Python, JS, Java, C++, SQL). Spot the buggy line, fix the code, and get live Socratic AI help!',
+      icon: <Bug className="w-5 h-5 text-rose-600" />,
+      tag: '32 Bug Challenges'
+    },
     {
       id: 'aptitude-reasoning',
       tab: 'aptitude-reasoning',
@@ -380,6 +389,14 @@ export const HeroHome: React.FC<HeroHomeProps> = ({
                   <MessageSquare className="w-4 h-4 text-sky-600" />
                   <span>Normal AI Chat</span>
                 </button>
+
+                <button
+                  onClick={() => setActiveTab('debug-interview')}
+                  className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
+                >
+                  <Bug className="w-4 h-4 text-rose-100" />
+                  <span>Fix Wrong Code (32 Qs)</span>
+                </button>
               </>
             ) : (
               <>
@@ -398,6 +415,14 @@ export const HeroHome: React.FC<HeroHomeProps> = ({
                 >
                   <Code2 className="w-4 h-4 text-sky-600" />
                   <span>Coding Sandbox & LeetCode</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('debug-interview')}
+                  className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
+                >
+                  <Bug className="w-4 h-4 text-rose-100" />
+                  <span>Fix Wrong Code (32 Qs)</span>
                 </button>
               </>
             )}
@@ -542,6 +567,37 @@ export const HeroHome: React.FC<HeroHomeProps> = ({
         </div>
       </section>
 
+      {/* LATEST 2026 INTERVIEW STYLE SPOTLIGHT (ABOVE CODE CORRECTION & MODULES) */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="rounded-3xl bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 border border-indigo-500/30 p-6 sm:p-8 shadow-xl text-white">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            <div className="space-y-2.5 max-w-3xl">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-indigo-500/20 border border-indigo-400/40 text-indigo-300 text-xs font-mono font-bold uppercase tracking-wider">
+                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                <span>Latest 2026 Interview Style • Industry Standard</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
+                Experience the New 2026 Tech Interview Format (Above Code Correction)
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                Modern hiring at Google, Meta, OpenAI, Stripe &amp; Amazon has shifted beyond static whiteboard memorization. Practice the <strong className="text-white">4 Latest Interview Styles</strong> right above our 32-Question Code Correction Arena: <strong className="text-indigo-300">1. AI Co-Pilot Hallucination Audit</strong>, <strong className="text-emerald-300">2. Live GitHub PR Code Review</strong>, <strong className="text-rose-300">3. SEV-1 Production Incident Triage</strong>, and <strong className="text-amber-300">4. Dynamic Mid-Interview Requirement Twists</strong>.
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row lg:flex-col gap-3 shrink-0">
+              <button
+                onClick={() => setActiveTab('debug-interview')}
+                className="px-6 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg flex items-center justify-center gap-2 transition-all cursor-pointer"
+              >
+                <Sparkles className="w-4 h-4 text-amber-300" />
+                <span>Launch 2026 Interview Style + Fix Wrong Code (32 Qs)</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* FEATURE CARDS GRID */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center space-y-2 mb-10">
@@ -568,7 +624,7 @@ export const HeroHome: React.FC<HeroHomeProps> = ({
                   setClickedModuleId(item.id);
                   setTimeout(() => {
                     setClickedModuleId(null);
-                    if (!user?.isLoggedIn && item.id !== 'general-chat' && item.id !== 'ai-coach' && item.id !== 'aptitude-reasoning') {
+                    if (!user?.isLoggedIn && item.id !== 'general-chat' && item.id !== 'ai-coach' && item.id !== 'aptitude-reasoning' && item.id !== 'debug-interview') {
                       onOpenAuth();
                     } else {
                       setActiveTab(item.id as ActiveTab);
@@ -602,7 +658,7 @@ export const HeroHome: React.FC<HeroHomeProps> = ({
 
                 <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-sky-600 group-hover:translate-x-1.5 transition-transform">
                   <span className="flex items-center gap-1.5">
-                    {item.id === 'general-chat' || item.id === 'ai-coach' || item.id === 'aptitude-reasoning'
+                    {item.id === 'general-chat' || item.id === 'ai-coach' || item.id === 'aptitude-reasoning' || item.id === 'debug-interview'
                       ? 'Open Free Arena'
                       : user?.isLoggedIn
                       ? 'Open Module'
@@ -870,20 +926,29 @@ export const HeroHome: React.FC<HeroHomeProps> = ({
 
         {/* CANDIDATE WEBINAR REGISTRATION MODAL */}
         {selectedWebinar && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in overflow-y-auto">
-            <div className="glass-card max-w-md w-full p-6 rounded-3xl border-slate-700 bg-slate-900 text-white shadow-2xl relative space-y-5 my-8">
+          <div
+            onClick={() => setSelectedWebinar(null)}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in overflow-y-auto"
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="glass-card max-w-md w-full p-6 rounded-3xl border-slate-700 bg-slate-900 text-white shadow-2xl relative space-y-5 my-8"
+            >
               {/* Close button */}
               <button
+                type="button"
                 onClick={() => setSelectedWebinar(null)}
-                className="absolute top-4 right-4 p-1.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
+                aria-label="Close registration modal"
+                className="absolute top-4 right-4 px-2.5 py-1.5 rounded-xl bg-rose-600/90 hover:bg-rose-500 text-white text-xs font-bold flex items-center gap-1 shadow-md transition-colors cursor-pointer"
               >
-                <X className="w-4 h-4" />
+                <span>Close</span>
+                <X className="w-3.5 h-3.5" />
               </button>
 
               {/* STEP 1: CANDIDATE DETAILS FORM */}
               {regStep === 'details' && (
                 <>
-                  <div className="space-y-1">
+                  <div className="space-y-1 pr-16">
                     <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-300 text-[10px] font-bold border border-sky-500/30">
                       <Video className="w-3 h-3 text-sky-400" />
                       <span>Webinar Registration</span>
@@ -960,7 +1025,7 @@ export const HeroHome: React.FC<HeroHomeProps> = ({
 
                     <button
                       type="submit"
-                      className="w-full py-3 rounded-xl gradient-btn text-white text-xs font-bold shadow-lg flex items-center justify-center gap-2 hover:opacity-95 transition-all"
+                      className="w-full py-3 rounded-xl gradient-btn text-white text-xs font-bold shadow-lg flex items-center justify-center gap-2 hover:opacity-95 transition-all cursor-pointer"
                     >
                       {selectedWebinar.price && selectedWebinar.price.toLowerCase() !== 'free' ? (
                         <>
@@ -971,17 +1036,27 @@ export const HeroHome: React.FC<HeroHomeProps> = ({
                         <span>Complete Free Registration</span>
                       )}
                     </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setSelectedWebinar(null)}
+                      className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold border border-slate-700 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                      <span>Cancel & Close</span>
+                    </button>
                   </form>
                 </>
               )}
 
               {/* STEP 2: UPI QR PAYMENT SCREEN */}
               {regStep === 'payment' && (
-                <div className="space-y-4 text-center animate-in zoom-in-95">
+                <div className="space-y-4 text-center animate-in zoom-in-95 pt-4">
                   <div className="flex items-center justify-between pb-2 border-b border-slate-800">
                     <button
+                      type="button"
                       onClick={() => setRegStep('details')}
-                      className="text-xs text-slate-400 hover:text-white flex items-center gap-1"
+                      className="text-xs text-slate-400 hover:text-white flex items-center gap-1 cursor-pointer"
                     >
                       ← Back
                     </button>
@@ -1093,14 +1168,24 @@ export const HeroHome: React.FC<HeroHomeProps> = ({
                   </div>
 
                   <button
+                    type="button"
                     onClick={() =>
                       executeRegistrationSubmit(selectedWebinar.price || '₹100', regUtr)
                     }
                     disabled={isSubmitting}
-                    className="w-full py-3 rounded-xl gradient-btn text-white text-xs font-bold shadow-lg flex items-center justify-center gap-2 hover:opacity-95 disabled:opacity-50"
+                    className="w-full py-3 rounded-xl gradient-btn text-white text-xs font-bold shadow-lg flex items-center justify-center gap-2 hover:opacity-95 disabled:opacity-50 cursor-pointer"
                   >
                     <ShieldCheck className="w-4 h-4 text-emerald-300" />
                     <span>{isSubmitting ? 'Verifying Payment...' : `Verify Transaction & Complete Registration`}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedWebinar(null)}
+                    className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold border border-slate-700 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                    <span>Cancel & Close Payment</span>
                   </button>
                 </div>
               )}

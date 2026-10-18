@@ -93,96 +93,114 @@ export async function testConnection() {
   }
 }
 
-// Google Sign-In with popup & real-time Firestore persistence
+// Google Sign-In with popup & non-blocking real-time Firestore persistence
 export async function signInWithGoogle(customTargetRole?: string) {
   try {
     const result = await signInWithPopup(auth, googleProvider);
     const user = result.user;
-    
+
     if (user) {
-      try {
-        const userRef = doc(db, 'users', user.uid);
-        const existingSnap = await getDoc(userRef);
-        
-        const defaultAvatar = user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(user.email || user.uid)}`;
-        
-        if (!existingSnap.exists()) {
-          await setDoc(userRef, {
-            userId: user.uid,
-            name: user.displayName || 'Candidate',
-            email: user.email || '',
-            avatar: defaultAvatar,
-            role: 'Software Engineer',
-            targetRole: customTargetRole || 'Senior Full Stack / AI Engineer',
-            dailyStreak: 1,
-            overallScore: 88,
-            totalInterviews: 1,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          });
-        } else {
-          const existingData = existingSnap.data();
-          await setDoc(userRef, {
-            name: user.displayName || existingData.name || 'Candidate',
-            email: user.email || existingData.email || '',
-            avatar: user.photoURL || existingData.avatar || defaultAvatar,
-            ...(customTargetRole ? { targetRole: customTargetRole } : {}),
-            updatedAt: new Date().toISOString()
-          }, { merge: true });
-        }
+      // Run Firestore profile and usage initialization in the background so the Sign-In modal closes immediately
+      (async () => {
+        try {
+          const userRef = doc(db, 'users', user.uid);
+          const existingSnap = await getDoc(userRef);
 
-        // Initialize / ensure user usage doc exists in cloud database for this exact UID
-        const usageRef = doc(db, 'userUsage', user.uid);
-        const usageSnap = await getDoc(usageRef);
-        const emailSafeId = user.email ? user.email.trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, '_') : '';
+          const defaultAvatar =
+            user.photoURL ||
+            `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(user.email || user.uid)}`;
 
-        if (!usageSnap.exists()) {
-          // Check if user already purchased a pack using their email address before Google Sign-In
-          let emailUsageData: UserUsageState | null = null;
-          if (emailSafeId && emailSafeId !== user.uid) {
-            const emailSnap = await getDoc(doc(db, 'userUsage', emailSafeId));
-            if (emailSnap.exists() && emailSnap.data()?.planId !== 'free') {
-              emailUsageData = emailSnap.data() as UserUsageState;
-            }
-          }
-
-          if (emailUsageData) {
-            await setDoc(usageRef, {
-              ...emailUsageData,
+          if (!existingSnap.exists()) {
+            await setDoc(userRef, {
               userId: user.uid,
-              userEmail: user.email || emailUsageData.userEmail || '',
+              name: user.displayName || 'Candidate',
+              email: user.email || '',
+              avatar: defaultAvatar,
+              role: 'Software Engineer',
+              targetRole: customTargetRole || 'Senior Full Stack / AI Engineer',
+              dailyStreak: 1,
+              overallScore: 88,
+              totalInterviews: 1,
+              createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString()
             });
           } else {
-            await setDoc(usageRef, {
-              userId: user.uid,
-              userEmail: user.email || '',
-              planId: 'free',
-              planName: 'Free Trial',
-              totalAllowedUses: 2,
-              usedCount: 0,
-              remainingUses: 2,
-              isUnlimited: false,
-              updatedAt: new Date().toISOString()
-            });
+            const existingData = existingSnap.data();
+            await setDoc(
+              userRef,
+              {
+                name: user.displayName || existingData.name || 'Candidate',
+                email: user.email || existingData.email || '',
+                avatar: user.photoURL || existingData.avatar || defaultAvatar,
+                ...(customTargetRole ? { targetRole: customTargetRole } : {}),
+                updatedAt: new Date().toISOString()
+              },
+              { merge: true }
+            );
           }
-        } else if (usageSnap.data()?.planId === 'free' && emailSafeId && emailSafeId !== user.uid) {
-          // If UID doc is still on free trial, check if a paid pack was activated under emailSafeId
-          const emailSnap = await getDoc(doc(db, 'userUsage', emailSafeId));
-          if (emailSnap.exists() && emailSnap.data()?.planId !== 'free') {
-            const paidData = emailSnap.data() as UserUsageState;
-            await setDoc(usageRef, {
-              ...paidData,
-              userId: user.uid,
-              userEmail: user.email || paidData.userEmail || '',
-              updatedAt: new Date().toISOString()
-            }, { merge: true });
+
+          // Initialize / ensure user usage doc exists in cloud database for this exact UID
+          const usageRef = doc(db, 'userUsage', user.uid);
+          const usageSnap = await getDoc(usageRef);
+          const emailSafeId = user.email
+            ? user.email.trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, '_')
+            : '';
+
+          if (!usageSnap.exists()) {
+            let emailUsageData: UserUsageState | null = null;
+            if (emailSafeId && emailSafeId !== user.uid) {
+              const emailSnap = await getDoc(doc(db, 'userUsage', emailSafeId));
+              if (emailSnap.exists() && emailSnap.data()?.planId !== 'free') {
+                emailUsageData = emailSnap.data() as UserUsageState;
+              }
+            }
+
+            if (emailUsageData) {
+              await setDoc(usageRef, {
+                ...emailUsageData,
+                userId: user.uid,
+                userEmail: user.email || emailUsageData.userEmail || '',
+                updatedAt: new Date().toISOString()
+              });
+            } else {
+              await setDoc(usageRef, {
+                userId: user.uid,
+                userEmail: user.email || '',
+                planId: 'free',
+                planName: 'Free Trial',
+                totalAllowedUses: 2,
+                usedCount: 0,
+                remainingUses: 2,
+                isUnlimited: false,
+                updatedAt: new Date().toISOString()
+              });
+            }
+          } else if (
+            usageSnap.data()?.planId === 'free' &&
+            emailSafeId &&
+            emailSafeId !== user.uid
+          ) {
+            const emailSnap = await getDoc(doc(db, 'userUsage', emailSafeId));
+            if (emailSnap.exists() && emailSnap.data()?.planId !== 'free') {
+              const paidData = emailSnap.data() as UserUsageState;
+              await setDoc(
+                usageRef,
+                {
+                  ...paidData,
+                  userId: user.uid,
+                  userEmail: user.email || paidData.userEmail || '',
+                  updatedAt: new Date().toISOString()
+                },
+                { merge: true }
+              );
+            }
           }
+        } catch (syncErr) {
+          console.warn('Cloud profile sync notice:', syncErr);
         }
-      } catch (syncErr) {
-        console.warn('Cloud profile sync notice:', syncErr);
-      }
+      })();
     }
+
     return user;
   } catch (error: any) {
     if (

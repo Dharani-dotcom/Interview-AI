@@ -26,7 +26,8 @@ import {
   Zap,
   BookOpen,
   CreditCard,
-  GraduationCap
+  GraduationCap,
+  Bug
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -79,6 +80,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'video-interview', label: 'AI Video', icon: <Video className="w-4 h-4" /> },
     { id: 'chat-interview', label: 'Interview Chat', icon: <Bot className="w-4 h-4" /> },
     { id: 'coding-interview', label: 'Coding', icon: <Code2 className="w-4 h-4" /> },
+    { id: 'debug-interview', label: 'Fix Wrong Code (32 Qs)', icon: <Bug className="w-4 h-4 text-rose-500" /> },
     { id: 'system-design', label: 'System Design', icon: <Cpu className="w-4 h-4" /> },
     { id: 'resume-analyzer', label: 'Resume', icon: <FileText className="w-4 h-4" /> },
     { id: 'dashboard', label: 'Dashboard', icon: <BarChart3 className="w-4 h-4" /> },

@@ -26,6 +26,7 @@ import { VideoInterview } from './components/VideoInterview';
 import { ResumeAnalyzer } from './components/ResumeAnalyzer';
 import { ATSChecker } from './components/ATSChecker';
 import { CodingInterview } from './components/CodingInterview';
+import { AIDebugInterview } from './components/AIDebugInterview';
 import { SystemDesignView } from './components/SystemDesignView';
 import { BehavioralInterview } from './components/BehavioralInterview';
 import { HRInterview } from './components/HRInterview';
@@ -79,22 +80,38 @@ export function App() {
       }
 
       if (fbUser) {
-        const firestoreProfile = await getUserProfileFromFirestore(fbUser.uid);
-        setUserProfile({
+        const defaultAvatar =
+          fbUser.photoURL ||
+          `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(fbUser.email || fbUser.uid)}`;
+
+        // 1. Immediately mark user as logged in and close Auth modal so the UI never hangs
+        setUserProfile((prev) => ({
+          ...prev,
           id: fbUser.uid,
-          name: fbUser.displayName || firestoreProfile?.name || 'Candidate',
-          email: fbUser.email || firestoreProfile?.email || '',
-          avatar:
-            fbUser.photoURL ||
-            firestoreProfile?.avatar ||
-            `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(fbUser.email || fbUser.uid)}`,
-          role: firestoreProfile?.role || 'Software Engineer',
-          targetRole: firestoreProfile?.targetRole || 'Senior Full Stack / AI Engineer',
-          dailyStreak: firestoreProfile?.dailyStreak || 1,
-          overallScore: firestoreProfile?.overallScore || 88,
-          totalInterviews: firestoreProfile?.totalInterviews || 1,
+          name: fbUser.displayName || prev.name || 'Candidate',
+          email: fbUser.email || prev.email || '',
+          avatar: fbUser.photoURL || prev.avatar || defaultAvatar,
           isLoggedIn: true,
-          isProUser: false,
+        }));
+        setIsAuthOpen(false);
+
+        // 2. Hydrate additional profile fields from cloud database asynchronously
+        getUserProfileFromFirestore(fbUser.uid).then((firestoreProfile) => {
+          if (firestoreProfile) {
+            setUserProfile((prev) => ({
+              ...prev,
+              id: fbUser.uid,
+              name: fbUser.displayName || firestoreProfile?.name || prev.name || 'Candidate',
+              email: fbUser.email || firestoreProfile?.email || prev.email || '',
+              avatar: fbUser.photoURL || firestoreProfile?.avatar || prev.avatar || defaultAvatar,
+              role: firestoreProfile?.role || prev.role || 'Software Engineer',
+              targetRole: firestoreProfile?.targetRole || prev.targetRole || 'Senior Full Stack / AI Engineer',
+              dailyStreak: firestoreProfile?.dailyStreak || prev.dailyStreak || 1,
+              overallScore: firestoreProfile?.overallScore || prev.overallScore || 88,
+              totalInterviews: firestoreProfile?.totalInterviews || prev.totalInterviews || 1,
+              isLoggedIn: true,
+            }));
+          }
         });
 
         // Real-time isolated listener for this exact user's profile doc
@@ -441,6 +458,18 @@ export function App() {
               setBlockedFeatureName('Coding Sandbox & LeetCode Tests');
               setIsSubscriptionOpen(true);
             }}
+          />
+        )}
+
+        {activeTab === 'debug-interview' && (
+          <AIDebugInterview
+            userUsage={userUsage}
+            onVerifyUsage={() => verifyAndConsumeUsage('AI Bug-Hunting & Code Fix Interview')}
+            onOpenSubscription={() => {
+              setBlockedFeatureName('AI Bug-Hunting & Code Correction Interview');
+              setIsSubscriptionOpen(true);
+            }}
+            onGenerateFinalReport={handleGenerateFinalReport}
           />
         )}
 

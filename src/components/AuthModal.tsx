@@ -44,11 +44,34 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [targetRole, setTargetRole] = useState(user?.targetRole || 'Senior Full Stack / AI Engineer');
   const [customRole, setCustomRole] = useState('');
   const [isCustomRole, setIsCustomRole] = useState(false);
+  const [quickName, setQuickName] = useState('');
+  const [quickEmail, setQuickEmail] = useState('');
+  const [showQuickSignIn, setShowQuickSignIn] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   if (!isOpen) return null;
+
+  const completeSignInAndClose = (userName: string, userEmail: string, avatar: string, selectedRole: string) => {
+    if (setUser) {
+      setUser((prev) => ({
+        ...prev,
+        id: prev?.id || userEmail.replace(/[^a-zA-Z0-9]/g, '_'),
+        name: userName,
+        email: userEmail,
+        avatar: avatar,
+        targetRole: selectedRole,
+        isLoggedIn: true,
+      }));
+    }
+
+    if (onSuccess) {
+      onSuccess({ name: userName, email: userEmail, avatar });
+    }
+
+    onClose();
+  };
 
   const handleGoogleAuth = async () => {
     setErrorMsg(null);
@@ -58,7 +81,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     try {
       const authUser = await signInWithGoogle(selectedRole);
       if (!authUser) {
-        setErrorMsg('Sign-in window was closed before completing. Click below whenever you are ready to continue.');
+        setShowQuickSignIn(true);
+        setErrorMsg('Google popup was closed or blocked. You can try Google again or sign in directly below with your Name & Email.');
         return;
       }
 
@@ -68,45 +92,38 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         authUser.photoURL ||
         `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(userEmail)}`;
 
-      if (setUser && user) {
-        setUser({
-          ...user,
-          name: userName,
-          email: userEmail,
-          avatar: avatar,
-          targetRole: selectedRole,
-          isLoggedIn: true,
-        });
-      }
-
-      if (onSuccess) {
-        onSuccess({ name: userName, email: userEmail, avatar });
-      }
-
-      setMessage(`Welcome back, ${userName}. Your account is verified.`);
-      setTimeout(() => {
-        setMessage(null);
-        onClose();
-      }, 900);
+      completeSignInAndClose(userName, userEmail, avatar, selectedRole);
     } catch (err: any) {
+      setShowQuickSignIn(true);
       if (
         err?.code === 'auth/popup-closed-by-user' ||
         err?.code === 'auth/cancelled-popup-request'
       ) {
-        setErrorMsg('Sign-in window was closed before completing. Click below whenever you are ready to continue.');
+        setErrorMsg('Sign-in popup was closed. Try again or use Quick Email Sign-In below.');
       } else if (err?.code === 'auth/popup-blocked') {
-        setErrorMsg('Sign-in popup was blocked by your browser. Please allow popups for this site and try again.');
+        setErrorMsg('Browser blocked the popup window. Please allow popups or sign in directly with your Email below.');
       } else if (err?.code === 'auth/unauthorized-domain') {
-        const host = typeof window !== 'undefined' ? window.location.hostname : 'your Vercel domain';
-        setErrorMsg(`To enable Google Sign-In on ${host}, add "${host}" to Authorized Domains in your Google Cloud / Authentication settings.`);
-      } else if (err?.code === 'auth/network-request-failed') {
-        setErrorMsg('Network connection interrupted during Google Sign-In. Please check your connection and try again.');
+        const host = typeof window !== 'undefined' ? window.location.hostname : 'this domain';
+        setErrorMsg(`Domain "${host}" is not yet added to Authorized Domains. Use Quick Email Sign-In below to enter immediately, or add "${host}" in Authentication Settings.`);
       } else {
-        setErrorMsg('Unable to complete Google Sign-In right now. Please try again.');
+        setErrorMsg('Google popup could not complete. Use Quick Email Sign-In below to continue immediately.');
       }
     } finally {
       setIsGoogleLoading(false);
     }
+  };
+
+  const handleQuickEmailSignIn = (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanName = quickName.trim() || 'Candidate';
+    const cleanEmail = quickEmail.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      setErrorMsg('Please enter a valid email address to continue.');
+      return;
+    }
+    const selectedRole = isCustomRole ? (customRole.trim() || targetRole) : targetRole;
+    const avatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(cleanEmail)}`;
+    completeSignInAndClose(cleanName, cleanEmail, avatar, selectedRole);
   };
 
   const handleLogout = async () => {
@@ -126,8 +143,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1F1612]/60 backdrop-blur-xs animate-in fade-in">
-      <div className="relative w-full max-w-md rounded-2xl bg-white border border-[#E5DBD2] shadow-2xl text-[#2B1B13] overflow-hidden">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1F1612]/60 backdrop-blur-xs animate-in fade-in"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-md rounded-2xl bg-white border border-[#E5DBD2] shadow-2xl text-[#2B1B13] overflow-hidden"
+      >
         {/* Warm Brown Top Accent Bar */}
         <div className="h-1.5 w-full bg-[#4A2E21]" />
 
@@ -148,7 +171,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <p className="text-xs text-[#6E5346] leading-relaxed">
               {user?.isLoggedIn
                 ? 'Your interview sessions, mock test scores, and active plan are synced to your account.'
-                : 'Continue with your Google account to save interview reports, track scores, and manage your plan.'}
+                : 'Continue with your Google account or email to save interview reports, track scores, and manage your plan.'}
             </p>
           </div>
 
@@ -156,9 +179,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             type="button"
             onClick={onClose}
             aria-label="Close sign in window"
-            className="p-2 rounded-lg text-[#7A6053] hover:text-[#261710] hover:bg-[#EFE7E0] transition-colors cursor-pointer shrink-0"
+            className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-[#4A2E21] bg-[#EFE7E0] hover:bg-[#E2D5C8] flex items-center gap-1 transition-colors cursor-pointer shrink-0"
           >
-            <X className="w-4 h-4" />
+            <span>Close</span>
+            <X className="w-3.5 h-3.5" />
           </button>
         </div>
 
@@ -191,7 +215,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <div className="flex items-center gap-2 flex-wrap">
                     <h4 className="text-sm font-bold text-[#261710] truncate">{user.name}</h4>
                     <span className="text-[11px] text-[#5C4033] font-medium">
-                      · Verified Google Account
+                      · Active Account
                     </span>
                   </div>
                   <p className="text-xs text-[#6E5346] truncate font-mono">{user.email}</p>
@@ -221,6 +245,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </div>
               )}
 
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-full py-2.5 px-4 rounded-xl bg-[#4A2E21] hover:bg-[#382117] text-xs font-semibold text-white flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+              >
+                <span>Continue to Platform →</span>
+              </button>
+
               <div className="flex gap-3 pt-1">
                 {onOpenSubscription && (
                   <button
@@ -229,7 +261,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       onClose();
                       onOpenSubscription();
                     }}
-                    className="flex-1 py-2.5 px-4 rounded-xl bg-[#4A2E21] hover:bg-[#382117] text-xs font-semibold text-white flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                    className="flex-1 py-2.5 px-4 rounded-xl bg-[#FAF6F2] hover:bg-[#EFE7E0] border border-[#D8C8BC] text-xs font-semibold text-[#4A2E21] flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
                   >
                     <span>Manage Subscription</span>
                     <ArrowUpRight className="w-3.5 h-3.5" />
@@ -301,7 +333,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </div>
 
               {/* Google Sign-In Button (Warm Espresso Brown & Crisp White) */}
-              <div className="space-y-2.5">
+              <div className="space-y-3">
                 <button
                   type="button"
                   disabled={isGoogleLoading}
@@ -334,6 +366,45 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   )}
                   <span>{isGoogleLoading ? 'Signing in with Google...' : 'Continue with Google'}</span>
                 </button>
+
+                {/* Instant Email Sign-In Option so Sign-In never gets stuck */}
+                {!showQuickSignIn ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowQuickSignIn(true)}
+                    className="w-full py-2 px-3 rounded-xl bg-[#FAF6F2] hover:bg-[#EFE7E0] border border-[#D8C8BC] text-[#4A2E21] text-xs font-semibold transition-colors cursor-pointer"
+                  >
+                    Or Sign In Directly with Name & Email →
+                  </button>
+                ) : (
+                  <form onSubmit={handleQuickEmailSignIn} className="p-3.5 rounded-xl bg-[#FAF6F2] border border-[#D8C8BC] space-y-2.5">
+                    <p className="text-[11px] font-bold text-[#4A2E21]">
+                      Direct Candidate Sign-In (Instant Access)
+                    </p>
+                    <input
+                      type="text"
+                      required
+                      value={quickName}
+                      onChange={(e) => setQuickName(e.target.value)}
+                      placeholder="Your Full Name"
+                      className="w-full px-3 py-2 rounded-lg bg-white border border-[#D8C8BC] text-[#261710] text-xs focus:border-[#4A2E21] focus:outline-hidden"
+                    />
+                    <input
+                      type="email"
+                      required
+                      value={quickEmail}
+                      onChange={(e) => setQuickEmail(e.target.value)}
+                      placeholder="Your Email Address (e.g. you@gmail.com)"
+                      className="w-full px-3 py-2 rounded-lg bg-white border border-[#D8C8BC] text-[#261710] text-xs focus:border-[#4A2E21] focus:outline-hidden"
+                    />
+                    <button
+                      type="submit"
+                      className="w-full py-2.5 px-4 rounded-lg bg-[#4A2E21] hover:bg-[#382117] text-white text-xs font-bold transition-colors cursor-pointer"
+                    >
+                      Sign In & Continue Now →
+                    </button>
+                  </form>
+                )}
               </div>
 
               {/* Account Benefits Summary */}

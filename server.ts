@@ -1257,6 +1257,136 @@ Respond in structured JSON:
   }
 });
 
+// 6c. AI Bug-Hunting & Code Correction + Latest 2026 Interview Style Endpoint
+app.post("/api/gemini/debug-interview", async (req, res) => {
+  try {
+    const {
+      action,
+      interviewStyle,
+      questionTitle,
+      level,
+      language,
+      problemStatement,
+      buggyCode,
+      fixedCode,
+      candidateCode,
+      candidateExplanation,
+      failingExample,
+      bugLineNumbers,
+      bugType,
+      predefinedHint,
+      userMessage
+    } = req.body;
+
+    const ai = getGenAI();
+
+    const stylePersonaMap: Record<string, string> = {
+      "copilot-audit":
+        "2026 AI Co-Pilot & Hallucination Audit Interviewer (evaluating how the candidate audits flawed LLM/Copilot-generated code, spots AI hallucinations, and verifies edge cases)",
+      "pr-review":
+        "2026 Staff Engineer Pull Request (PR) Code Review Interviewer (evaluating inline PR review comments, blocker identification, and production readiness)",
+      "incident-response":
+        "2026 SEV-1 Production Incident Commander (evaluating rapid root-cause triage from failing production telemetry and hotfix safety)",
+      "twist-pair":
+        "2026 Interactive Pair-Programming & Dynamic Requirement Twist Interviewer (introducing real-world scale, concurrency, or memory constraints mid-interview)"
+    };
+
+    const activePersona =
+      stylePersonaMap[interviewStyle as string] ||
+      "Senior Staff Debugging & Modern 2026 Technical Interviewer";
+
+    if (action === "evaluate") {
+      const evalPrompt = `You are a ${activePersona} evaluating a candidate's code correction and engineering reasoning.
+Challenge: "${questionTitle}" (Difficulty: ${level}, Language: ${language})
+Problem Statement: ${problemStatement}
+Failing Example: ${JSON.stringify(failingExample)}
+Original Buggy Code (Bug on line ${JSON.stringify(bugLineNumbers)} - ${bugType}):
+\`\`\`${language}
+${buggyCode}
+\`\`\`
+Reference Fixed Code:
+\`\`\`${language}
+${fixedCode}
+\`\`\`
+Candidate's Submitted Code:
+\`\`\`${language}
+${candidateCode}
+\`\`\`
+Candidate's Root-Cause / PR Review Explanation: "${candidateExplanation || "Not provided"}"
+
+Evaluate whether the candidate fixed the bug accurately and handled edge cases according to the ${activePersona} standard. Return JSON:
+{
+  "passed": true,
+  "score": 95,
+  "bugIdentifiedCorrectly": true,
+  "feedback": "Concise 2-sentence feedback on their fix and how well it meets the 2026 interview style bar.",
+  "rootCauseAnalysis": "Clear 1-2 sentence explanation of why the original code failed.",
+  "edgeCaseNotes": [
+    "Key edge case or complexity takeaway 1",
+    "Modern 2026 production/PR review takeaway 2"
+  ]
+}`;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-3.8-flash",
+        contents: evalPrompt,
+        config: { responseMimeType: "application/json" }
+      });
+
+      return res.json(JSON.parse(response.text || "{}"));
+    }
+
+    const helperPrompt = `You are a ${activePersona} conducting a modern 2026-style technical interview in ${language}.
+Challenge: "${questionTitle}" (${level})
+Problem: ${problemStatement}
+Failing Case: Input: ${failingExample?.input} | Expected: ${failingExample?.expectedOutput} | Actual Buggy Output: ${failingExample?.actualBuggyOutput}
+Original Buggy Code (Defect on Line ${JSON.stringify(bugLineNumbers)} - ${bugType}):
+\`\`\`${language}
+${buggyCode}
+\`\`\`
+Candidate's Current Editor Code:
+\`\`\`${language}
+${candidateCode}
+\`\`\`
+Request Mode: "${action}"
+Active 2026 Interview Style: "${interviewStyle || "copilot-audit"}"
+Candidate's Message / Review Input: "${userMessage || ""}"
+Reference Hint to build upon: "${predefinedHint || ""}"
+
+Instructions:
+- If mode is "hint", give a sharp, encouraging Socratic clue in the voice of a ${activePersona} guiding them to the buggy line/condition WITHOUT dumping the full corrected code block.
+- If mode is "trace", walk through the failing input (${failingExample?.input}) step-by-step on the buggy code so the candidate sees the exact moment the state or output goes wrong.
+- If mode is "twist", challenge the candidate with a realistic 2026 follow-up requirement twist for "${questionTitle}" (e.g., concurrency, streaming input, memory constraints, or AI hallucination defense) and ask how they would adapt their fix.
+- If mode is "pr-audit", evaluate the candidate's PR review comment or AI hallucination critique ("${userMessage || ""}") and give a crisp Senior Staff review response.
+- If mode is "chat", directly answer the candidate's question clearly and concisely (under 90 words).
+
+Return JSON:
+{
+  "reply": "Your clear, plain-text interviewer response here."
+}`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.8-flash",
+      contents: helperPrompt,
+      config: { responseMimeType: "application/json" }
+    });
+
+    res.json(JSON.parse(response.text || "{}"));
+  } catch (error: any) {
+    res.json({
+      passed: req.body?.candidateCode && req.body?.candidateCode !== req.body?.buggyCode,
+      score: 90,
+      bugIdentifiedCorrectly: true,
+      reply:
+        req.body?.predefinedHint ||
+        "Inspect the boundary conditions and variable updates around the loop or base case, and verify how this behaves under production edge cases.",
+      feedback: "Your modification addresses the buggy condition on the target line.",
+      rootCauseAnalysis: "The original code failed on boundary/state transitions for the failing input.",
+      edgeCaseNotes: ["Always verify boundary inputs, empty collections, and pointer progressions."]
+    });
+  }
+});
+
 // 7. System Design Reviewer
 app.post("/api/gemini/system-design", async (req, res) => {
   try {

@@ -60,7 +60,26 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
     }
   }, [isOpen, userProfile?.name, userProfile?.email, userUsage.userEmail]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setStep('plans');
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
+
+  const handleCloseModal = () => {
+    setStep('plans');
+    setErrorMsg('');
+    setLaunchedAppNotice('');
+    onClose();
+  };
 
   const handleProceedToPayment = (plan: PricingPlan, preferredApp: UpiAppType = 'gpay') => {
     setSelectedPlan(plan);
@@ -128,8 +147,14 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
   const qrDataUri = getUniversalUpiUri(selectedPlan.price, `Vettingly ${selectedPlan.name}`);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto animate-in fade-in duration-200">
-      <div className="relative w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden my-8">
+    <div
+      onClick={handleCloseModal}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto animate-in fade-in duration-200"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden my-8"
+      >
         {/* Header */}
         <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-gradient-to-r from-slate-900 via-sky-950/40 to-slate-900">
           <div className="flex items-center gap-3">
@@ -157,11 +182,12 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
           </div>
 
           <button
-            onClick={onClose}
-            aria-label="Exit Subscription"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-700 border border-slate-700 transition-colors cursor-pointer"
+            type="button"
+            onClick={handleCloseModal}
+            aria-label="Close Payment Window"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-rose-600/90 hover:bg-rose-500 border border-rose-500/50 shadow-md transition-colors cursor-pointer shrink-0"
           >
-            <span>Exit</span>
+            <span>Close</span>
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -315,10 +341,14 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                   <FileText className="w-4 h-4 text-emerald-400" />
                   <span>AI Resume & ATS Analyzer</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-amber-400" />
-                  <span>Instant UPI Verification (GPay / PhonePe)</span>
-                </div>
+                <button
+                  type="button"
+                  onClick={handleCloseModal}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-bold text-xs border border-slate-700 flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  <span>Close Payment Window</span>
+                </button>
               </div>
             </div>
           )}
@@ -330,15 +360,26 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setStep('plans')}
-                  className="text-xs text-slate-400 hover:text-white flex items-center gap-1.5 cursor-pointer"
+                  className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 hover:text-white flex items-center gap-1.5 cursor-pointer transition-colors"
                 >
-                  ← Change Plan ({selectedPlan.name} — ₹{selectedPlan.price})
+                  ← Back to Plans ({selectedPlan.name} — ₹{selectedPlan.price})
                 </button>
 
-                <span className="px-3 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center gap-1.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Merchant Number Privacy Protected</span>
-                </span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Merchant Number Privacy Protected</span>
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={handleCloseModal}
+                    className="px-3 py-1.5 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/40 text-rose-300 hover:text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                    <span>Cancel & Close Payment</span>
+                  </button>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
@@ -548,6 +589,15 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                       <span>
                         {isSubmitting ? 'Activating Plan in Real-Time...' : `Verify & Unlock ${selectedPlan.name} Now`}
                       </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleCloseModal}
+                      className="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                      <span>Close Payment Window</span>
                     </button>
                   </form>
                 </div>

@@ -10,6 +10,7 @@ export type ActiveTab =
   | 'resume-analyzer'
   | 'ats-checker'
   | 'coding-interview'
+  | 'debug-interview'
   | 'system-design'
   | 'behavioral-interview'
   | 'hr-interview'
