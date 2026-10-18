@@ -7,6 +7,12 @@ const CODE_FIELD_KEYS = new Set([
   'code',
   'starterCode',
   'diagramAscii',
+  'imageUrl',
+  'imageBase64',
+  'svgDataUrl',
+  'fileBase64',
+  'audioUrl',
+  'sourceUrl',
 ]);
 
 /**

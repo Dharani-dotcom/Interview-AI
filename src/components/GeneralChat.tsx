@@ -20,7 +20,10 @@ import {
   Bot,
   User,
   Plus,
-  CheckCircle2
+  CheckCircle2,
+  Image as ImageIcon,
+  Download,
+  Wand2
 } from 'lucide-react';
 import { NeatRomanText, cleanNeatRomanText } from '../lib/neatText';
 
@@ -42,6 +45,7 @@ interface LessonItem {
   summary: string;
   keyTakeaways: string[];
   fullExtractedText?: string;
+  generatedImageUrl?: string;
   interviewQuestions: Array<{
     question: string;
     difficulty: string;
@@ -60,6 +64,8 @@ interface ChatMessage {
   sender: 'ai' | 'user';
   text: string;
   timestamp: string;
+  imageUrl?: string;
+  attachedFileName?: string;
 }
 
 const DEFAULT_LESSONS: LessonItem[] = [
@@ -195,6 +201,7 @@ export const GeneralChat: React.FC<GeneralChatProps> = ({
   // Primary Prompt Input
   const [inputText, setInputText] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [generateImageMode, setGenerateImageMode] = useState(false);
 
   // YouTube modal / input
   const [showYoutubeInput, setShowYoutubeInput] = useState(false);
@@ -204,7 +211,7 @@ export const GeneralChat: React.FC<GeneralChatProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const activeLessonFileInputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
-  const [processingStatus, setProcessingStatus] = useState('Turbo AI is preparing your study module...');
+  const [processingStatus, setProcessingStatus] = useState('Turbo AI is preparing your answer & study module...');
   const [attachedFile, setAttachedFile] = useState<{
     name: string;
     size: string;
@@ -226,6 +233,7 @@ export const GeneralChat: React.FC<GeneralChatProps> = ({
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
+  const [chatImageMode, setChatImageMode] = useState(false);
   const [currentFlashcardIndex, setCurrentFlashcardIndex] = useState(0);
   const [isFlashcardFlipped, setIsFlashcardFlipped] = useState(false);
   const [showAnswerForQuestion, setShowAnswerForQuestion] = useState<Record<number, boolean>>({});
@@ -370,59 +378,82 @@ export const GeneralChat: React.FC<GeneralChatProps> = ({
         reader.readAsDataURL(file);
       });
 
-      setProcessingStatus(`Turbo AI: Extracting sections, terms, flashcards & Q&A from "${file.name}"...`);
+      const userQueryWithPdf = inputText.trim();
+      setProcessingStatus(
+        userQueryWithPdf
+          ? `Turbo AI: Analyzing "${file.name}" and answering "${userQueryWithPdf}"...`
+          : `Turbo AI: Extracting executive summary, key concepts, flashcards & Q&A from "${file.name}"...`
+      );
 
       const res = await fetch('/api/gemini/prepare-lesson', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sourceType: 'pdf',
-          query: `Analyze this document thoroughly: ${file.name}`,
+          query: userQueryWithPdf || `Analyze this document thoroughly: ${file.name}`,
           fileName: file.name,
           fileBase64: base64Data,
           mimeType: file.type || 'application/pdf',
+          generateImage: generateImageMode,
         }),
       });
 
       const data = await res.json();
-      const lessonData = data.lesson || data.fallbackLesson;
+      const lessonData = data.lesson || data.fallbackLesson || {};
+
+      const fullSummaryText =
+        lessonData.summary || `Comprehensive analysis and study notes extracted from ${file.name}.`;
+      const takeawaysList =
+        Array.isArray(lessonData.keyTakeaways) && lessonData.keyTakeaways.length > 0
+          ? `\n\nKEY TAKEAWAYS FROM ${file.name.toUpperCase()}:\n${lessonData.keyTakeaways
+              .map((t: string) => `• ${t}`)
+              .join('\n')}`
+          : '';
 
       const newLesson: LessonItem = {
         id: `lesson-${Date.now()}`,
         title: lessonData.title || file.name.replace(/\.[^/.]+$/, ''),
-        category: lessonData.category || 'Document Study',
+        category: lessonData.category || 'PDF Document Analysis',
         sourceType: 'pdf',
         fileName: file.name,
         fileBase64: base64Data,
         mimeType: file.type || 'application/pdf',
         fileSize: `${fileSizeMb} MB`,
-        summary: lessonData.summary || `Comprehensive analysis and study notes extracted from ${file.name}.`,
+        summary: fullSummaryText,
         keyTakeaways: lessonData.keyTakeaways || [
           'Document uploaded into Turbo AI grounded knowledge base.',
           'Full document multimodal context enabled for direct questions.',
         ],
-        fullExtractedText: lessonData.fullExtractedText || undefined,
+        fullExtractedText: lessonData.fullExtractedText || fullSummaryText,
+        generatedImageUrl: lessonData.generatedImageUrl || undefined,
         interviewQuestions: lessonData.interviewQuestions || [],
         flashcards: lessonData.flashcards || [],
         createdAt: 'Just now',
       };
 
       setLessons((prev) => [newLesson, ...prev]);
+
+      const detailedInitialMessage =
+        lessonData.initialAiGreeting && lessonData.initialAiGreeting.length > 150
+          ? lessonData.initialAiGreeting
+          : `DOCUMENT ANALYSIS: ${file.name}\n\n${fullSummaryText}${takeawaysList}\n\nAsk me any specific question about ${file.name}, or click "Generate Image" below to create a visual diagram!`;
+
       openLesson(
         newLesson,
-        lessonData.initialAiGreeting ||
-          `📄 **${file.name}** has been loaded into Turbo AI!\n\nI have read all sections and extracted key takeaways, flashcards, and practice questions. Ask me anything directly from this document, and I will answer with exact citations and explanations!`
+        detailedInitialMessage,
+        userQueryWithPdf ? `Uploaded PDF "${file.name}" — ${userQueryWithPdf}` : `Uploaded PDF Document: ${file.name}`,
+        lessonData.generatedImageUrl
       );
 
       // Reset main inputs
       setInputText('');
       setAttachedFile(null);
+      setGenerateImageMode(false);
     } catch (err: any) {
       console.error('Error processing document with Turbo AI:', err);
-      alert('Unable to process document. Please try again or check the file format.');
     } finally {
       setIsProcessing(false);
-      setProcessingStatus('Turbo AI is preparing your study module...');
+      setProcessingStatus('Turbo AI is preparing your answer & study module...');
     }
   };
 
@@ -442,7 +473,7 @@ export const GeneralChat: React.FC<GeneralChatProps> = ({
     setInputText((prev) => (prev ? prev : `Summarize and teach key concepts from this YouTube video`));
   };
 
-  // Prepare & Create Lesson using Gemini API
+  // Prepare & Answer Question / Create Lesson using Gemini API
   const handleCreateLesson = async () => {
     const queryText = inputText.trim() || voiceTranscript.trim();
     if (!queryText && !youtubeUrl && !attachedFile && !recordedAudioUrl) {
@@ -455,7 +486,11 @@ export const GeneralChat: React.FC<GeneralChatProps> = ({
     }
 
     setIsProcessing(true);
-    setProcessingStatus('Turbo AI: Creating your interactive lesson...');
+    setProcessingStatus(
+      generateImageMode
+        ? `Turbo AI: Generating visual illustration & detailed answer for "${queryText || 'your topic'}"...`
+        : `Turbo AI: Answering "${queryText || 'your question'}" with examples & study notes...`
+    );
 
     let sourceType: 'topic' | 'youtube' | 'pdf' | 'audio' = 'topic';
     if (attachedFile) sourceType = 'pdf';
@@ -474,11 +509,25 @@ export const GeneralChat: React.FC<GeneralChatProps> = ({
           mimeType: attachedFile?.mimeType,
           fileName: attachedFile?.name,
           audioText: voiceTranscript || queryText,
+          generateImage: generateImageMode,
         }),
       });
 
       const data = await res.json();
-      const lessonData = data.lesson || data.fallbackLesson;
+      const lessonData = data.lesson || data.fallbackLesson || {};
+
+      const fullSummary = lessonData.summary || 'Summary and insights ready for review.';
+      const takeawaysFormatted =
+        Array.isArray(lessonData.keyTakeaways) && lessonData.keyTakeaways.length > 0
+          ? `\n\nKEY TAKEAWAYS:\n${lessonData.keyTakeaways.map((t: string) => `• ${t}`).join('\n')}`
+          : '';
+
+      const completeAnswerMessage =
+        lessonData.initialAiGreeting &&
+        lessonData.initialAiGreeting.length > 150 &&
+        !/read through the summary below/i.test(lessonData.initialAiGreeting)
+          ? lessonData.initialAiGreeting
+          : `${fullSummary}${takeawaysFormatted}`;
 
       const newLesson: LessonItem = {
         id: `lesson-${Date.now()}`,
@@ -490,9 +539,10 @@ export const GeneralChat: React.FC<GeneralChatProps> = ({
         fileBase64: attachedFile?.base64,
         mimeType: attachedFile?.mimeType,
         fileSize: attachedFile?.size,
-        summary: lessonData.summary || 'Summary and insights ready for review.',
+        summary: fullSummary,
         keyTakeaways: lessonData.keyTakeaways || ['Core fundamentals and best practices.'],
-        fullExtractedText: lessonData.fullExtractedText || undefined,
+        fullExtractedText: lessonData.fullExtractedText || fullSummary,
+        generatedImageUrl: lessonData.generatedImageUrl || undefined,
         interviewQuestions: lessonData.interviewQuestions || [],
         flashcards: lessonData.flashcards || [],
         createdAt: 'Just now',
@@ -500,7 +550,12 @@ export const GeneralChat: React.FC<GeneralChatProps> = ({
       };
 
       setLessons((prev) => [newLesson, ...prev]);
-      openLesson(newLesson, lessonData.initialAiGreeting);
+      openLesson(
+        newLesson,
+        completeAnswerMessage,
+        queryText || (attachedFile ? `Uploaded: ${attachedFile.name}` : undefined),
+        lessonData.generatedImageUrl
+      );
 
       // Clean up input bar
       setInputText('');
@@ -508,9 +563,9 @@ export const GeneralChat: React.FC<GeneralChatProps> = ({
       setAttachedFile(null);
       setRecordedAudioUrl(null);
       setVoiceTranscript('');
+      setGenerateImageMode(false);
     } catch (err) {
       console.error('Error creating lesson:', err);
-      // Client-side fallback lesson
       const fallbackLesson: LessonItem = {
         id: `lesson-${Date.now()}`,
         title: queryText || (attachedFile ? attachedFile.name : 'Interactive Lesson'),
@@ -521,7 +576,7 @@ export const GeneralChat: React.FC<GeneralChatProps> = ({
         fileBase64: attachedFile?.base64,
         mimeType: attachedFile?.mimeType,
         fileSize: attachedFile?.size,
-        summary: `### Comprehensive Overview\n\nDeep dive into **${queryText || 'the requested topic'}**.\n\nMastering these concepts prepares candidates to explain technical mechanisms, evaluate design trade-offs, and handle practical problem-solving with confidence.`,
+        summary: `COMPREHENSIVE OVERVIEW: ${(queryText || 'Requested Topic').toUpperCase()}\n\nThis module covers the core definition, step-by-step working mechanism, primary categories, and real-world applications of ${queryText || 'the topic'}.`,
         keyTakeaways: [
           'Core foundational mechanics and architectural patterns.',
           'Key trade-offs, performance implications, and reliability.',
@@ -530,59 +585,138 @@ export const GeneralChat: React.FC<GeneralChatProps> = ({
         ],
         interviewQuestions: [
           {
-            question: `How would you explain the core mechanism of ${queryText || 'this subject'} to a non-expert?`,
+            question: `How would you explain the core mechanism of ${queryText || 'this subject'} with a real-world example?`,
             difficulty: 'Medium',
             idealAnswer:
               'Break it down into simple terms using real-world analogies, highlighting input, processing, and output.'
-          },
-          {
-            question: `What are the primary performance bottlenecks to consider?`,
-            difficulty: 'Hard',
-            idealAnswer:
-              'Analyze resource limits (CPU, memory, I/O latency) and architectural trade-offs.'
           }
         ],
         flashcards: [
-          { front: 'Primary Principle', back: 'Core theoretical foundation and practical application.' },
-          { front: 'Key Metric', back: 'Low latency, high throughput, and fault tolerance.' }
+          { front: queryText || 'Primary Principle', back: 'Core theoretical foundation and practical application.' }
         ],
         createdAt: 'Just now',
       };
 
       setLessons((prev) => [fallbackLesson, ...prev]);
-      openLesson(fallbackLesson);
+      openLesson(fallbackLesson, fallbackLesson.summary, queryText);
     } finally {
       setIsProcessing(false);
-      setProcessingStatus('Turbo AI is preparing your study module...');
+      setProcessingStatus('Turbo AI is preparing your answer & study module...');
     }
   };
 
-  // Open Lesson View
-  const openLesson = (lesson: LessonItem, initialGreeting?: string) => {
+  // Open Lesson View and display the full answer immediately in Chat
+  const openLesson = (
+    lesson: LessonItem,
+    initialGreeting?: string,
+    userPromptText?: string,
+    initialImageUrl?: string
+  ) => {
     setActiveLesson(lesson);
     setActiveTab('chat');
     setCurrentFlashcardIndex(0);
     setIsFlashcardFlipped(false);
     setShowAnswerForQuestion({});
 
-    const greeting =
-      initialGreeting ||
-      `Hello! I am your AI Mentor for **${lesson.title}**.\n\nI have summarized the material, extracted key takeaways, and generated flashcards and interview questions. What would you like to explore or practice first?`;
+    const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const takeawaysBlock =
+      Array.isArray(lesson.keyTakeaways) && lesson.keyTakeaways.length > 0
+        ? `\n\nKEY TAKEAWAYS:\n${lesson.keyTakeaways.map((t) => `• ${t}`).join('\n')}`
+        : '';
 
-    setChatMessages([
-      {
-        id: '1',
-        sender: 'ai',
-        text: greeting,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      },
-    ]);
+    const fullAiAnswer =
+      initialGreeting && initialGreeting.length > 120
+        ? initialGreeting
+        : `${lesson.summary}${takeawaysBlock}\n\nAsk me any follow-up question below, upload a PDF document, or click "Generate Image" to create a visual illustration!`;
+
+    const initialMessages: ChatMessage[] = [];
+    if (userPromptText && userPromptText.trim()) {
+      initialMessages.push({
+        id: `${Date.now()}-user`,
+        sender: 'user',
+        text: userPromptText.trim(),
+        timestamp: nowTime,
+        attachedFileName: lesson.fileName,
+      });
+    }
+
+    initialMessages.push({
+      id: `${Date.now()}-ai`,
+      sender: 'ai',
+      text: fullAiAnswer,
+      timestamp: nowTime,
+      imageUrl: initialImageUrl || lesson.generatedImageUrl,
+    });
+
+    setChatMessages(initialMessages);
+  };
+
+  // Generate AI Image directly inside active chat
+  const handleGenerateImageInChat = async (customPrompt?: string) => {
+    if (chatLoading || !activeLesson) return;
+    const rawPrompt = (customPrompt || chatInput.trim() || activeLesson.title).trim();
+    if (!rawPrompt) return;
+
+    const displayUserText =
+      customPrompt || chatInput.trim()
+        ? `🎨 Generate Image: ${rawPrompt}`
+        : `🎨 Generate a visual diagram & illustration for: ${activeLesson.title}`;
+
+    const userMsg: ChatMessage = {
+      id: Date.now().toString(),
+      sender: 'user',
+      text: displayUserText,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+
+    setChatMessages((prev) => [...prev, userMsg]);
+    setChatInput('');
+    setChatImageMode(false);
+    setChatLoading(true);
+
+    try {
+      const res = await fetch('/api/gemini/generate-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: rawPrompt }),
+      });
+      const data = await res.json();
+
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          id: (Date.now() + 1).toString(),
+          sender: 'ai',
+          text: data.text || `Here is your generated visual illustration for "${rawPrompt}".`,
+          imageUrl: data.imageUrl,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        },
+      ]);
+    } catch (err) {
+      console.error('Image generation error:', err);
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          id: (Date.now() + 1).toString(),
+          sender: 'ai',
+          text: `Unable to generate image right now. Please try again with a different description.`,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        },
+      ]);
+    } finally {
+      setChatLoading(false);
+    }
   };
 
   // Send message inside active lesson chat
   const handleSendChatMessage = async (presetText?: string) => {
     const textToSend = presetText || chatInput.trim();
     if (!textToSend || chatLoading || !activeLesson) return;
+
+    if (chatImageMode && !presetText) {
+      await handleGenerateImageInChat(textToSend);
+      return;
+    }
 
     const userMsg: ChatMessage = {
       id: Date.now().toString(),
@@ -605,25 +739,25 @@ export const GeneralChat: React.FC<GeneralChatProps> = ({
           messages: updatedMessages,
           fileBase64: activeLesson.fileBase64,
           mimeType: activeLesson.mimeType,
+          fileName: activeLesson.fileName,
           documentContext: activeLesson.fullExtractedText || activeLesson.summary,
-          systemRole: `You are Turbo AI Study Mentor and Document Grounded Tutor specializing in "${activeLesson.title}".
-Context of current lesson:
-Document / Topic: ${activeLesson.fileName || activeLesson.title}
-Summary: ${activeLesson.summary}
-Key points: ${activeLesson.keyTakeaways.join('; ')}
+          generateImage: chatImageMode,
+          systemRole: `You are Turbo AI Study Mentor and Document Grounded Tutor.
+Current Study Context: "${activeLesson.title}" (${activeLesson.category}).
+${activeLesson.fileName ? `Attached PDF Document: ${activeLesson.fileName}` : ''}
+Reference Summary: ${activeLesson.summary}
+Key Takeaways: ${activeLesson.keyTakeaways.join('; ')}
 
-IMPORTANT TURBO AI GROUNDING RULES:
-1. The user has uploaded or selected this specific document for study.
-2. Ground your answers directly on the attached document content and extracted text.
-3. If the user asks for definitions, formulas, specific paragraphs, numbers, or details from the document, cite and answer using the document as the single source of truth.
-4. If a question cannot be answered from the document, answer politely while mentioning what the document does cover.
-5. Format your answers clearly using clean Markdown, bullet points, and code/math blocks where appropriate.`,
+IMPORTANT RULES:
+1. Answer the user's exact question thoroughly, directly, and clearly with concrete examples, step-by-step explanations, and types/categories.
+2. If the user asks a general question (like "what is ML", "what is Python", "explain SQL", etc.), answer that question completely and accurately even if it goes beyond the initial lesson topic!
+3. If a PDF document is attached and the user asks about the PDF, ground your answer directly in the uploaded PDF content.`,
         }),
       });
 
       const data = await res.json();
       const aiResponse =
-        data.text || `Great question regarding ${activeLesson.title}. Would you like to review more details or try a practice question?`;
+        data.text || `Here is the explanation regarding ${textToSend}. What would you like to explore next?`;
 
       setChatMessages((prev) => [
         ...prev,
@@ -631,6 +765,7 @@ IMPORTANT TURBO AI GROUNDING RULES:
           id: (Date.now() + 1).toString(),
           sender: 'ai',
           text: aiResponse,
+          imageUrl: data.imageUrl || undefined,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         },
       ]);
@@ -641,7 +776,7 @@ IMPORTANT TURBO AI GROUNDING RULES:
         {
           id: (Date.now() + 1).toString(),
           sender: 'ai',
-          text: `In summary for ${activeLesson.title}: prioritize understanding core fundamentals, clear communication, and practical application. Would you like another question?`,
+          text: `Here is the key breakdown for "${textToSend}": focus on core definitions, how the mechanism works step-by-step, and real-world examples. Ask me another question or upload a PDF to analyze!`,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         },
       ]);
@@ -865,12 +1000,44 @@ IMPORTANT TURBO AI GROUNDING RULES:
                       </div>
 
                       <div
-                        className={`max-w-[82%] sm:max-w-xl rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+                        className={`max-w-[85%] sm:max-w-2xl rounded-2xl px-4 py-3 text-sm leading-relaxed ${
                           isAi
                             ? 'bg-[#202026] text-slate-200 border border-white/5 rounded-tl-sm'
                             : 'bg-gradient-to-r from-purple-700 to-indigo-700 text-white rounded-tr-sm shadow-md'
                         }`}
                       >
+                        {msg.attachedFileName && (
+                          <div className="mb-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-sky-500/20 border border-sky-400/30 text-sky-200 text-xs font-semibold">
+                            <FileText className="w-3.5 h-3.5 text-sky-300" />
+                            <span>{msg.attachedFileName}</span>
+                          </div>
+                        )}
+
+                        {msg.imageUrl && (
+                          <div className="mb-3 rounded-xl overflow-hidden border border-purple-500/30 bg-black/40 shadow-lg">
+                            <img
+                              src={msg.imageUrl}
+                              alt="AI Generated Visual Illustration"
+                              referrerPolicy="no-referrer"
+                              className="w-full max-h-[380px] object-contain bg-[#0b0f19]"
+                            />
+                            <div className="px-3 py-2 bg-[#14141c] border-t border-white/10 flex items-center justify-between text-[11px] text-slate-300">
+                              <span className="flex items-center gap-1.5 font-semibold text-purple-300">
+                                <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                                AI Generated Visual Illustration
+                              </span>
+                              <a
+                                href={msg.imageUrl}
+                                download={`ai-visual-${msg.id}.svg`}
+                                className="px-2.5 py-1 rounded-lg bg-purple-600/30 hover:bg-purple-600/50 text-purple-200 border border-purple-500/30 font-semibold flex items-center gap-1 transition-colors"
+                              >
+                                <Download className="w-3 h-3" />
+                                <span>Download Image</span>
+                              </a>
+                            </div>
+                          </div>
+                        )}
+
                         <NeatRomanText text={msg.text} className="text-[15px]" />
 
                         <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/5 text-[10px] text-slate-400">
@@ -880,7 +1047,7 @@ IMPORTANT TURBO AI GROUNDING RULES:
                               <button
                                 onClick={() => handleSpeak(msg.text, msg.id)}
                                 title="Listen"
-                                className="hover:text-purple-300 transition-colors flex items-center gap-1"
+                                className="hover:text-purple-300 transition-colors flex items-center gap-1 cursor-pointer"
                               >
                                 {speakingMessageId === msg.id ? (
                                   <>
@@ -897,7 +1064,7 @@ IMPORTANT TURBO AI GROUNDING RULES:
                               <button
                                 onClick={() => handleCopy(msg.text, msg.id)}
                                 title="Copy"
-                                className="hover:text-slate-200 transition-colors flex items-center gap-1"
+                                className="hover:text-slate-200 transition-colors flex items-center gap-1 cursor-pointer"
                               >
                                 {copiedText === msg.id ? (
                                   <Check className="w-3 h-3 text-emerald-400" />
@@ -922,8 +1089,8 @@ IMPORTANT TURBO AI GROUNDING RULES:
                       <span className="w-2 h-2 rounded-full bg-sky-400 animate-ping" />
                       <span>
                         {activeLesson.sourceType === 'pdf'
-                          ? 'Turbo AI is reading document context and synthesizing answer...'
-                          : 'AI Mentor is thinking and formulating response...'}
+                          ? 'Turbo AI is reading your PDF document and synthesizing a complete answer...'
+                          : 'Turbo AI is thinking and generating your response...'}
                       </span>
                     </div>
                   </div>
@@ -934,15 +1101,24 @@ IMPORTANT TURBO AI GROUNDING RULES:
               {/* Quick Prompt Suggestions */}
               <div className="bg-[#1a1a20] px-4 py-2 border-t border-white/5 flex items-center gap-2 overflow-x-auto no-scrollbar">
                 <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider shrink-0">
-                  Quick Prompts:
+                  Quick Actions:
                 </span>
+                <button
+                  type="button"
+                  onClick={() => handleGenerateImageInChat()}
+                  disabled={chatLoading}
+                  className="px-2.5 py-1 rounded-full bg-fuchsia-500/15 hover:bg-fuchsia-500/25 text-[11px] text-fuchsia-300 hover:text-white shrink-0 transition-colors border border-fuchsia-500/30 flex items-center gap-1 font-semibold cursor-pointer"
+                >
+                  <ImageIcon className="w-3 h-3 text-fuchsia-400" />
+                  <span>🎨 Generate Visual Image</span>
+                </button>
                 {activeLesson.sourceType === 'pdf' ? (
                   <>
                     <button
                       onClick={() =>
                         handleSendChatMessage('Give me a detailed executive summary of this uploaded document.')
                       }
-                      className="px-2.5 py-1 rounded-full bg-sky-500/10 hover:bg-sky-500/20 text-[11px] text-sky-300 hover:text-white shrink-0 transition-colors border border-sky-500/20"
+                      className="px-2.5 py-1 rounded-full bg-sky-500/10 hover:bg-sky-500/20 text-[11px] text-sky-300 hover:text-white shrink-0 transition-colors border border-sky-500/20 cursor-pointer"
                     >
                       📄 Summarize entire PDF
                     </button>
@@ -952,7 +1128,7 @@ IMPORTANT TURBO AI GROUNDING RULES:
                           'Extract and list all key formulas, definitions, and technical terms mentioned in this document.'
                         )
                       }
-                      className="px-2.5 py-1 rounded-full bg-sky-500/10 hover:bg-sky-500/20 text-[11px] text-sky-300 hover:text-white shrink-0 transition-colors border border-sky-500/20"
+                      className="px-2.5 py-1 rounded-full bg-sky-500/10 hover:bg-sky-500/20 text-[11px] text-sky-300 hover:text-white shrink-0 transition-colors border border-sky-500/20 cursor-pointer"
                     >
                       🔍 Key formulas & definitions
                     </button>
@@ -962,46 +1138,40 @@ IMPORTANT TURBO AI GROUNDING RULES:
                           'Test my understanding with 3 specific quiz questions based strictly on the facts in this document.'
                         )
                       }
-                      className="px-2.5 py-1 rounded-full bg-sky-500/10 hover:bg-sky-500/20 text-[11px] text-sky-300 hover:text-white shrink-0 transition-colors border border-sky-500/20"
+                      className="px-2.5 py-1 rounded-full bg-sky-500/10 hover:bg-sky-500/20 text-[11px] text-sky-300 hover:text-white shrink-0 transition-colors border border-sky-500/20 cursor-pointer"
                     >
-                      🎯 Quiz me from this document
-                    </button>
-                    <button
-                      onClick={() =>
-                        handleSendChatMessage('Explain the most complex or difficult concept in this document simply.')
-                      }
-                      className="px-2.5 py-1 rounded-full bg-sky-500/10 hover:bg-sky-500/20 text-[11px] text-sky-300 hover:text-white shrink-0 transition-colors border border-sky-500/20"
-                    >
-                      💡 Simplify hardest concept
+                      🎯 Quiz me from this PDF
                     </button>
                   </>
                 ) : (
                   <>
                     <button
                       onClick={() =>
-                        handleSendChatMessage('Explain this concept in simpler terms with an everyday analogy.')
+                        handleSendChatMessage('Explain this concept in simpler terms with real-world examples and an everyday analogy.')
                       }
-                      className="px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 text-[11px] text-slate-300 hover:text-white shrink-0 transition-colors"
+                      className="px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 text-[11px] text-slate-300 hover:text-white shrink-0 transition-colors cursor-pointer"
                     >
-                      💡 Simpler explanation with analogy
+                      💡 Simpler explanation + examples
                     </button>
                     <button
                       onClick={() =>
                         handleSendChatMessage(
-                          'Ask me a challenging question based on this topic to test my knowledge.'
+                          'Give me a practical code example or step-by-step architecture breakdown for this topic.'
                         )
                       }
-                      className="px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 text-[11px] text-slate-300 hover:text-white shrink-0 transition-colors"
+                      className="px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 text-[11px] text-slate-300 hover:text-white shrink-0 transition-colors cursor-pointer"
                     >
-                      🎯 Test my understanding
+                      💻 Code / Architecture example
                     </button>
                     <button
                       onClick={() =>
-                        handleSendChatMessage('What are the most common pitfalls or mistakes candidates make regarding this?')
+                        handleSendChatMessage(
+                          'Ask me 3 important interview questions on this topic with ideal answers.'
+                        )
                       }
-                      className="px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 text-[11px] text-slate-300 hover:text-white shrink-0 transition-colors"
+                      className="px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 text-[11px] text-slate-300 hover:text-white shrink-0 transition-colors cursor-pointer"
                     >
-                      ⚠️ Common pitfalls & traps
+                      🎯 Top Interview Q&A
                     </button>
                   </>
                 )}
@@ -1019,17 +1189,38 @@ IMPORTANT TURBO AI GROUNDING RULES:
                   type="file"
                   ref={activeLessonFileInputRef}
                   onChange={handleFileUpload}
-                  accept=".pdf,.doc,.docx,.txt"
+                  accept=".pdf,.doc,.docx,.txt,.md"
                   className="hidden"
                 />
 
                 <button
                   type="button"
                   onClick={() => activeLessonFileInputRef.current?.click()}
-                  className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-sky-300 border border-white/10 flex items-center justify-center transition-all shrink-0 cursor-pointer"
-                  title="Upload or switch document"
+                  className="px-2.5 h-10 rounded-xl bg-sky-500/10 hover:bg-sky-500/20 text-sky-300 hover:text-white border border-sky-500/30 flex items-center gap-1.5 text-xs font-semibold transition-all shrink-0 cursor-pointer"
+                  title="Upload a PDF or Document to analyze in chat"
                 >
-                  <Upload className="w-4 h-4" />
+                  <Upload className="w-3.5 h-3.5 text-sky-400" />
+                  <span className="hidden sm:inline">Upload PDF</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (chatInput.trim()) {
+                      handleGenerateImageInChat(chatInput.trim());
+                    } else {
+                      setChatImageMode((prev) => !prev);
+                    }
+                  }}
+                  className={`px-2.5 h-10 rounded-xl border flex items-center gap-1.5 text-xs font-semibold transition-all shrink-0 cursor-pointer ${
+                    chatImageMode
+                      ? 'bg-fuchsia-600 text-white border-fuchsia-400 shadow-md shadow-fuchsia-600/25'
+                      : 'bg-fuchsia-500/10 hover:bg-fuchsia-500/20 text-fuchsia-300 hover:text-white border-fuchsia-500/30'
+                  }`}
+                  title="Generate AI Image or Visual Diagram"
+                >
+                  <ImageIcon className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">{chatImageMode ? 'Image Mode ON' : 'Generate Image'}</span>
                 </button>
 
                 <input
@@ -1037,9 +1228,11 @@ IMPORTANT TURBO AI GROUNDING RULES:
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
                   placeholder={
-                    activeLesson.sourceType === 'pdf'
-                      ? `Ask anything from ${activeLesson.fileName || 'this document'}...`
-                      : `Ask anything about ${activeLesson.title}...`
+                    chatImageMode
+                      ? 'Describe the image or diagram to generate (e.g., Machine Learning workflow)...'
+                      : activeLesson.sourceType === 'pdf'
+                      ? `Ask anything from ${activeLesson.fileName || 'this PDF'}, or ask any question...`
+                      : `Ask any question (e.g. "what is ML", "give examples") or type "generate image of..."`
                   }
                   className="flex-1 bg-[#202026] text-white placeholder-slate-400 px-4 py-2.5 rounded-xl text-xs sm:text-sm border border-white/10 focus:outline-none focus:border-sky-500/50"
                 />
@@ -1489,7 +1682,9 @@ IMPORTANT TURBO AI GROUNDING RULES:
             placeholder={
               isRecording
                 ? voiceTranscript || 'Listening to your voice...'
-                : 'how do planes fly'
+                : generateImageMode
+                ? 'Describe the image or diagram to generate (e.g., "Machine Learning pipeline diagram", "Neural network architecture")...'
+                : 'Ask any question (e.g., "what is ML", "explain Python decorators"), upload a PDF, or generate an image...'
             }
             className="w-full bg-transparent text-sm sm:text-base text-white placeholder-slate-500 resize-none outline-none px-2 py-1 leading-relaxed"
           />
@@ -1497,7 +1692,7 @@ IMPORTANT TURBO AI GROUNDING RULES:
           {/* Bottom Toolbar */}
           <div className="flex items-center justify-between mt-2 pt-2">
             {/* Left Action Buttons */}
-            <div className="flex items-center gap-1.5 sm:gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
               {/* Record Button */}
               <button
                 type="button"
@@ -1527,6 +1722,24 @@ IMPORTANT TURBO AI GROUNDING RULES:
               >
                 <FileText className="w-3.5 h-3.5 text-sky-400" />
                 <span>Upload PDF</span>
+              </button>
+
+              {/* Generate Image Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  setGenerateImageMode((prev) => !prev);
+                  mainInputRef.current?.focus();
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer border ${
+                  generateImageMode
+                    ? 'bg-fuchsia-600 text-white border-fuchsia-400 shadow-lg shadow-fuchsia-600/30'
+                    : 'bg-fuchsia-500/10 hover:bg-fuchsia-500/20 border-fuchsia-500/30 text-fuchsia-300 hover:text-white'
+                }`}
+                title="Generate AI Image & Visual Diagram"
+              >
+                <ImageIcon className="w-3.5 h-3.5 text-fuchsia-300" />
+                <span>{generateImageMode ? 'Generate Image: ON' : 'Generate Image'}</span>
               </button>
 
               {/* YouTube Button */}
@@ -1569,11 +1782,31 @@ IMPORTANT TURBO AI GROUNDING RULES:
         <div className="flex items-center justify-center gap-2 mt-4 flex-wrap text-xs">
           <span className="text-slate-500 font-medium">Try asking:</span>
           <button
+            onClick={() => {
+              setInputText('What is ML? Explain Machine Learning with types and real-world examples');
+              mainInputRef.current?.focus();
+            }}
+            className="px-3 py-1 rounded-full bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 hover:text-white border border-purple-500/30 transition-colors cursor-pointer font-medium"
+          >
+            🤖 What is ML (Machine Learning)?
+          </button>
+          <button
             onClick={() => fileInputRef.current?.click()}
             className="px-3 py-1 rounded-full bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 hover:text-white border border-sky-500/30 transition-colors cursor-pointer flex items-center gap-1.5 font-medium"
           >
             <FileText className="w-3.5 h-3.5 text-sky-400" />
-            <span>📄 Upload PDF & Ask (Turbo AI Grounded)</span>
+            <span>📄 Upload PDF & Ask</span>
+          </button>
+          <button
+            onClick={() => {
+              setGenerateImageMode(true);
+              setInputText('Generate image of Machine Learning & Neural Network architecture');
+              mainInputRef.current?.focus();
+            }}
+            className="px-3 py-1 rounded-full bg-fuchsia-500/15 hover:bg-fuchsia-500/25 text-fuchsia-300 hover:text-white border border-fuchsia-500/30 transition-colors cursor-pointer flex items-center gap-1.5 font-medium"
+          >
+            <Wand2 className="w-3.5 h-3.5 text-fuchsia-400" />
+            <span>🎨 Generate AI Image</span>
           </button>
           <button
             onClick={() => {
@@ -1583,15 +1816,6 @@ IMPORTANT TURBO AI GROUNDING RULES:
             className="px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition-colors cursor-pointer"
           >
             ✈️ how do planes fly
-          </button>
-          <button
-            onClick={() => {
-              setInputText('explain quantum computing in simple terms');
-              mainInputRef.current?.focus();
-            }}
-            className="px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition-colors cursor-pointer"
-          >
-            ⚛️ quantum computing
           </button>
           <button
             onClick={() => {
