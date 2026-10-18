@@ -297,6 +297,15 @@ export const Navbar: React.FC<NavbarProps> = ({
                     </button>
                     <button
                       onClick={() => {
+                        setActiveTab('admin-panel');
+                        setShowProfileDropdown(false);
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-lg text-xs text-emerald-700 hover:bg-emerald-50 font-semibold flex items-center gap-2"
+                    >
+                      <Award className="w-3.5 h-3.5 text-emerald-600" /> Admin Portal (Signed-In Users)
+                    </button>
+                    <button
+                      onClick={() => {
                         onLogout();
                         setShowProfileDropdown(false);
                       }}

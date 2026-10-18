@@ -32,7 +32,7 @@ import {
   Trophy,
   Building2
 } from 'lucide-react';
-import { WebinarItem, WebinarRegistration, SubscriptionPaymentRecord, PlanId, MockTestScoreRecord, UserProfile } from '../types';
+import { WebinarItem, WebinarRegistration, SubscriptionPaymentRecord, PlanId, MockTestScoreRecord, UserProfile, UserUsageState } from '../types';
 import { 
   subscribeToSubscriptionPayments, 
   adminUpdateUserQuota,
@@ -42,7 +42,11 @@ import {
   deleteWebinarFromFirestore,
   deleteWebinarRegistrationFromFirestore,
   subscribeToMockTestScores,
-  deleteMockTestScoreFromFirestore
+  deleteMockTestScoreFromFirestore,
+  subscribeToAllRegisteredUsers,
+  subscribeToAllUserUsages,
+  deleteRegisteredUserFromFirestore,
+  RegisteredUserRecord
 } from '../lib/firebase';
 
 const ADMIN_ALLOWED_EMAILS = new Set([
@@ -56,7 +60,7 @@ interface AdminPanelProps {
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ userProfile, onOpenAuth }) => {
-  const [activeTab, setActiveTab] = useState<'mock-scores' | 'cyber-security' | 'webinars' | 'registrations' | 'subscriptions' | 'questions' | 'users' | 'metrics'>('mock-scores');
+  const [activeTab, setActiveTab] = useState<'users' | 'mock-scores' | 'cyber-security' | 'webinars' | 'registrations' | 'subscriptions' | 'questions' | 'metrics'>('users');
   const [adminPasskeyInput, setAdminPasskeyInput] = useState('');
   const [adminPasskeyUnlocked, setAdminPasskeyUnlocked] = useState(false);
   const [adminPasskeyError, setAdminPasskeyError] = useState('');
@@ -66,6 +70,38 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ userProfile, onOpenAuth 
     (Boolean(userProfile?.isLoggedIn) &&
       Boolean(userProfile?.email) &&
       ADMIN_ALLOWED_EMAILS.has(userProfile!.email.trim().toLowerCase()));
+
+  // Real-time Signed-In Users (Google OAuth & Name + Email) State
+  const [firestoreUsersList, setFirestoreUsersList] = useState<RegisteredUserRecord[]>([]);
+  const [serverUsersList, setServerUsersList] = useState<RegisteredUserRecord[]>([]);
+  const [allUserUsages, setAllUserUsages] = useState<UserUsageState[]>([]);
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [userMethodFilter, setUserMethodFilter] = useState<'ALL' | 'Google' | 'Name & Email'>('ALL');
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+
+  const fetchServerUserLogins = async () => {
+    try {
+      const res = await fetch('/api/admin/user-logins');
+      const data = await res.json();
+      if (Array.isArray(data?.users)) {
+        setServerUsersList(
+          data.users.map((u: any) => ({
+            id: u.userId || u.email,
+            userId: u.userId || u.email,
+            name: u.name || 'Candidate',
+            email: u.email || '',
+            avatar: u.avatar || '',
+            targetRole: u.targetRole || 'Senior Full Stack / AI Engineer',
+            authMethod: u.authMethod || 'Google',
+            lastLoginAt: u.lastLoginAt || u.createdAt || new Date().toISOString(),
+            createdAt: u.createdAt || new Date().toISOString()
+          }))
+        );
+      }
+    } catch {
+      // non-blocking
+    }
+  };
 
   // Cyber Security & Stripe Gateway Telemetry State
   const [cyberStatus, setCyberStatus] = useState<any>(null);
@@ -146,6 +182,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ userProfile, onOpenAuth 
     if (!isAuthorizedAdmin) return;
 
     fetchSecurityStatus();
+    fetchServerUserLogins();
+
+    // Real-time listener for Signed-In Users (Google OAuth & Name + Email)
+    const unsubscribeUsers = subscribeToAllRegisteredUsers((users) => {
+      setFirestoreUsersList(users);
+    });
+
+    // Real-time listener for User Usages & Plans
+    const unsubscribeUsages = subscribeToAllUserUsages((usages) => {
+      setAllUserUsages(usages);
+    });
 
     // Real-time listener for Student Mock Test Scores
     const unsubscribeScores = subscribeToMockTestScores((scores) => {
@@ -170,6 +217,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ userProfile, onOpenAuth 
     });
 
     return () => {
+      if (unsubscribeUsers) unsubscribeUsers();
+      if (unsubscribeUsages) unsubscribeUsages();
       if (unsubscribeScores) unsubscribeScores();
       if (unsubscribeWebinars) unsubscribeWebinars();
       if (unsubscribeRegs) unsubscribeRegs();
@@ -487,6 +536,201 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ userProfile, onOpenAuth 
     );
   }
 
+  // Merge all real-time user sign-in records (Firestore /users, Server /api/admin/user-logins, /userUsage, mock scores, webinars, subscriptions)
+  const usageByEmail = new Map<string, UserUsageState>();
+  const usageById = new Map<string, UserUsageState>();
+  for (const u of allUserUsages) {
+    if (u.userEmail) usageByEmail.set(u.userEmail.trim().toLowerCase(), u);
+    if (u.userId) usageById.set(u.userId, u);
+  }
+
+  const userMapByEmail = new Map<
+    string,
+    RegisteredUserRecord & { planName?: string; remainingUses?: number; isUnlimited?: boolean }
+  >();
+
+  const upsertUserRecord = (rec: {
+    id?: string;
+    userId?: string;
+    name?: string;
+    email?: string;
+    avatar?: string;
+    targetRole?: string;
+    authMethod?: string;
+    lastLoginAt?: string;
+    createdAt?: string;
+  }) => {
+    const cleanEmail = (rec.email || '').trim().toLowerCase();
+    if (!cleanEmail || cleanEmail === 'candidate@interviewai.pro' || cleanEmail === 'guest@vettingly.in') return;
+
+    const existing = userMapByEmail.get(cleanEmail);
+    const emailSafeId = cleanEmail.replace(/[^a-zA-Z0-9]/g, '_');
+    const resolvedId = rec.id || rec.userId || existing?.id || emailSafeId;
+    const matchedUsage = usageByEmail.get(cleanEmail) || usageById.get(resolvedId) || usageById.get(emailSafeId);
+
+    const inferredMethod =
+      rec.authMethod ||
+      existing?.authMethod ||
+      (resolvedId && resolvedId !== emailSafeId && !resolvedId.includes('_') ? 'Google' : 'Name & Email');
+
+    const latestTime =
+      rec.lastLoginAt && existing?.lastLoginAt
+        ? new Date(rec.lastLoginAt) > new Date(existing.lastLoginAt)
+          ? rec.lastLoginAt
+          : existing.lastLoginAt
+        : rec.lastLoginAt || existing?.lastLoginAt || rec.createdAt || new Date().toISOString();
+
+    userMapByEmail.set(cleanEmail, {
+      id: resolvedId,
+      userId: resolvedId,
+      name:
+        rec.name && rec.name !== 'Candidate'
+          ? rec.name
+          : existing?.name || cleanEmail.split('@')[0],
+      email: cleanEmail,
+      avatar:
+        rec.avatar ||
+        existing?.avatar ||
+        `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(cleanEmail)}`,
+      targetRole: rec.targetRole || existing?.targetRole || 'Senior Full Stack / AI Engineer',
+      authMethod: inferredMethod,
+      lastLoginAt: latestTime,
+      createdAt: rec.createdAt || existing?.createdAt || latestTime,
+      planName: matchedUsage?.planName || 'Free Trial',
+      remainingUses: matchedUsage?.remainingUses ?? 2,
+      isUnlimited: matchedUsage?.isUnlimited ?? false
+    });
+  };
+
+  // 1. Firestore /users collection (primary real-time source for Google & Name+Email sign-ins)
+  for (const u of firestoreUsersList) {
+    upsertUserRecord(u);
+  }
+  // 2. Server /api/admin/user-logins
+  for (const u of serverUsersList) {
+    upsertUserRecord(u);
+  }
+  // 3. Firestore /userUsage collection
+  for (const u of allUserUsages) {
+    if (u.userEmail) {
+      upsertUserRecord({
+        id: u.userId,
+        userId: u.userId,
+        email: u.userEmail,
+        lastLoginAt: u.updatedAt
+      });
+    }
+  }
+  // 4. Subscription payments, webinar registrations, and mock test submissions
+  for (const s of subscriptionsList) {
+    upsertUserRecord({
+      userId: s.userId,
+      name: s.userName,
+      email: s.userEmail,
+      lastLoginAt: s.createdAt
+    });
+  }
+  for (const r of registrationsList) {
+    upsertUserRecord({
+      name: r.userName,
+      email: r.userEmail,
+      targetRole: r.userRole,
+      lastLoginAt: r.registeredAt
+    });
+  }
+  for (const m of mockScoresList) {
+    upsertUserRecord({
+      name: m.studentName,
+      email: m.studentEmail,
+      lastLoginAt: m.submittedAt
+    });
+  }
+  // 5. Currently signed-in user profile if active
+  if (userProfile?.isLoggedIn && userProfile?.email) {
+    upsertUserRecord({
+      name: userProfile.name,
+      email: userProfile.email,
+      avatar: userProfile.avatar,
+      targetRole: userProfile.targetRole
+    });
+  }
+
+  const mergedSignedInUsers = Array.from(userMapByEmail.values()).sort(
+    (a, b) => new Date(b.lastLoginAt || 0).getTime() - new Date(a.lastLoginAt || 0).getTime()
+  );
+
+  const filteredSignedInUsers = mergedSignedInUsers.filter((u) => {
+    const q = userSearchQuery.trim().toLowerCase();
+    const matchesSearch =
+      !q ||
+      u.name.toLowerCase().includes(q) ||
+      u.email.toLowerCase().includes(q) ||
+      (u.targetRole || '').toLowerCase().includes(q) ||
+      (u.authMethod || '').toLowerCase().includes(q);
+    const isGoogle = (u.authMethod || '').toLowerCase().includes('google');
+    const matchesMethod =
+      userMethodFilter === 'ALL' ||
+      (userMethodFilter === 'Google' && isGoogle) ||
+      (userMethodFilter === 'Name & Email' && !isGoogle);
+    return matchesSearch && matchesMethod;
+  });
+
+  const googleSignInCount = mergedSignedInUsers.filter((u) =>
+    (u.authMethod || '').toLowerCase().includes('google')
+  ).length;
+  const emailSignInCount = mergedSignedInUsers.length - googleSignInCount;
+
+  const exportSignedInUsersCsv = () => {
+    if (mergedSignedInUsers.length === 0) {
+      alert('No signed-in users recorded yet.');
+      return;
+    }
+    const headers = ['Full Name', 'Email Address', 'Sign-In Method', 'Target Role', 'Current Plan', 'Remaining Uses', 'Last Sign-In Time'];
+    const rows = mergedSignedInUsers.map((u) => [
+      `"${(u.name || 'Candidate').replace(/"/g, '""')}"`,
+      `"${(u.email || '').replace(/"/g, '""')}"`,
+      `"${(u.authMethod || 'Google').replace(/"/g, '""')}"`,
+      `"${(u.targetRole || '').replace(/"/g, '""')}"`,
+      `"${(u.planName || 'Free Trial').replace(/"/g, '""')}"`,
+      `"${u.isUnlimited ? 'Unlimited' : (u.remainingUses ?? 2)}"`,
+      `"${u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString() : ''}"`
+    ]);
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `Signed_In_Users_Report_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleDeleteSignedInUser = async (u: RegisteredUserRecord) => {
+    try {
+      setDeletingUserId(u.id);
+      await deleteRegisteredUserFromFirestore(u.id);
+      const emailSafeId = u.email.trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, '_');
+      if (emailSafeId !== u.id) {
+        try {
+          await deleteRegisteredUserFromFirestore(emailSafeId);
+        } catch {
+          // ignore
+        }
+      }
+      try {
+        await fetch(`/api/admin/user-logins/${encodeURIComponent(u.email)}`, { method: 'DELETE' });
+      } catch {
+        // ignore
+      }
+      setFirestoreUsersList((prev) => prev.filter((item) => item.email !== u.email));
+      setServerUsersList((prev) => prev.filter((item) => item.email !== u.email));
+    } catch {
+      alert('Failed to remove user record.');
+    } finally {
+      setDeletingUserId(null);
+    }
+  };
+
   return (
     <div className="space-y-6 py-6 max-w-5xl mx-auto">
       {/* Header */}
@@ -502,12 +746,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ userProfile, onOpenAuth 
             </span>
           </div>
           <p className="text-xs text-slate-400 mt-1">
-            Manage webinars, Google Form links, candidate registrations, and system telemetry.
+            Monitor who signed in with Google or Name &amp; Email, manage candidate quotas, webinars, and mock test scores.
           </p>
         </div>
 
         {/* Tab selector */}
         <div className="flex flex-wrap items-center gap-1.5 bg-slate-900 p-1.5 rounded-xl border border-slate-800 text-xs">
+          <button
+            onClick={() => setActiveTab('users')}
+            className={`px-3 py-1.5 rounded-lg font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'users' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Users className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Signed-In Users ({mergedSignedInUsers.length})</span>
+          </button>
           <button
             onClick={() => setActiveTab('mock-scores')}
             className={`px-3 py-1.5 rounded-lg font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
@@ -552,15 +805,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ userProfile, onOpenAuth 
           >
             <FileQuestion className="w-3.5 h-3.5" />
             <span>Questions</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('users')}
-            className={`px-3 py-1.5 rounded-lg font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
-              activeTab === 'users' ? 'bg-sky-500/20 text-sky-300 border border-sky-500/40' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <Users className="w-3.5 h-3.5" />
-            <span>Users</span>
           </button>
           <button
             onClick={() => setActiveTab('metrics')}
@@ -1539,19 +1783,203 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ userProfile, onOpenAuth 
         </div>
       )}
 
-      {/* USERS TAB */}
+      {/* SIGNED-IN USERS TAB (GOOGLE OAUTH & NAME + EMAIL SIGN-INS) */}
       {activeTab === 'users' && (
-        <div className="glass-card p-6 rounded-2xl border-slate-800 space-y-4">
-          <h3 className="text-sm font-bold text-white pb-2 border-b border-slate-800 flex items-center gap-2">
-            <Users className="w-4 h-4 text-purple-400" /> Platform Registered Users (2,410)
-          </h3>
-          <div className="space-y-2 text-xs">
-            {['Candidate User (Pro Tier)', 'Sarah Jenkins (Enterprise)', 'Michael Chen (Free Trial)', 'Elena Rostova (Pro Tier)'].map((usr, i) => (
-              <div key={i} className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between">
-                <span className="text-slate-200 font-medium">{usr}</span>
-                <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-bold">Active</span>
+        <div className="space-y-6">
+          {/* Summary Stats */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
+              <span className="text-[11px] text-slate-400 font-semibold flex items-center gap-1.5">
+                <Users className="w-4 h-4 text-emerald-400" /> Total Signed-In Users
+              </span>
+              <p className="text-2xl font-black text-white">{mergedSignedInUsers.length}</p>
+              <span className="text-[10px] text-emerald-400 font-mono">Real-time Cloud + Session Log</span>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
+              <span className="text-[11px] text-slate-400 font-semibold flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-sky-400" /> Signed In with Google
+              </span>
+              <p className="text-2xl font-black text-sky-400">{googleSignInCount}</p>
+              <span className="text-[10px] text-slate-400 font-mono">Verified Google OAuth 2.0</span>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
+              <span className="text-[11px] text-slate-400 font-semibold flex items-center gap-1.5">
+                <Mail className="w-4 h-4 text-amber-400" /> Signed In with Name &amp; Email
+              </span>
+              <p className="text-2xl font-black text-amber-400">{emailSignInCount}</p>
+              <span className="text-[10px] text-slate-400 font-mono">Direct Name &amp; Email Sign-In</span>
+            </div>
+          </div>
+
+          <div className="glass-card p-6 rounded-2xl border-slate-800 space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-3 border-b border-slate-800">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <Users className="w-4 h-4 text-emerald-400" />
+                  <span>Live Signed-In Users — Google &amp; Name/Email ({filteredSignedInUsers.length})</span>
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Every user who signs in with Google OAuth or Direct Name &amp; Email is automatically logged here in real time.
+                </p>
               </div>
-            ))}
+
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={fetchServerUserLogins}
+                  className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1.5 border border-slate-700 cursor-pointer"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Refresh</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={exportSignedInUsersCsv}
+                  className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-md cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Export Users CSV</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Search & Filter by Sign-In Method */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={userSearchQuery}
+                  onChange={(e) => setUserSearchQuery(e.target.value)}
+                  placeholder="Search user by name, email address, or role..."
+                  className="w-full pl-9 pr-3.5 py-2 rounded-xl glass-input text-white text-xs placeholder:text-slate-500"
+                />
+              </div>
+
+              <div className="flex items-center gap-1.5 bg-slate-900 p-1 rounded-xl border border-slate-800 text-xs">
+                {(['ALL', 'Google', 'Name & Email'] as const).map((method) => (
+                  <button
+                    key={method}
+                    type="button"
+                    onClick={() => setUserMethodFilter(method)}
+                    className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                      userMethodFilter === method
+                        ? 'bg-sky-600 text-white'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {method === 'ALL' ? 'All Sign-Ins' : method === 'Google' ? 'Google Sign-In' : 'Name & Email'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Users List */}
+            {filteredSignedInUsers.length === 0 ? (
+              <div className="py-10 text-center text-xs text-slate-400">
+                No signed-in users match your current filter. When anyone signs in via Google or Name &amp; Email, their Name and Email appear here immediately.
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {filteredSignedInUsers.map((u) => {
+                  const isGoogleMethod = (u.authMethod || '').toLowerCase().includes('google');
+                  return (
+                    <div
+                      key={u.email}
+                      className="p-4 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 flex flex-col md:flex-row md:items-center justify-between gap-4 text-xs transition-all"
+                    >
+                      <div className="flex items-start sm:items-center gap-3.5">
+                        <img
+                          src={
+                            u.avatar ||
+                            `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(u.email)}`
+                          }
+                          alt={u.name}
+                          className="w-10 h-10 rounded-xl border border-slate-700 object-cover shrink-0 bg-slate-800"
+                        />
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-bold text-white">{u.name}</span>
+
+                            {/* Sign-In Method Badge: Google vs Name & Email */}
+                            {isGoogleMethod ? (
+                              <span className="px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/40 text-[10px] font-bold flex items-center gap-1">
+                                <ShieldCheck className="w-3 h-3 text-sky-400" />
+                                <span>Google Sign-In</span>
+                              </span>
+                            ) : (
+                              <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold flex items-center gap-1">
+                                <Mail className="w-3 h-3 text-amber-400" />
+                                <span>Name &amp; Email Sign-In</span>
+                              </span>
+                            )}
+
+                            <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-mono">
+                              {u.planName || 'Free Trial'} ({u.isUnlimited ? 'Unlimited' : `${u.remainingUses ?? 2} left`})
+                            </span>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-300">
+                            <a
+                              href={`mailto:${u.email}`}
+                              className="font-mono text-emerald-300 hover:underline flex items-center gap-1"
+                            >
+                              <Mail className="w-3.5 h-3.5 text-emerald-400" />
+                              <span>{u.email}</span>
+                            </a>
+                            {u.targetRole && (
+                              <span className="text-slate-400">
+                                Role: <strong className="text-slate-200">{u.targetRole}</strong>
+                              </span>
+                            )}
+                            {u.lastLoginAt && (
+                              <span className="text-slate-500 font-mono text-[10px]">
+                                Last Sign-In: {new Date(u.lastLoginAt).toLocaleString()}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 self-end md:self-center shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setManualEmail(u.email);
+                            setActiveTab('subscriptions');
+                          }}
+                          className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-amber-500/20 text-slate-300 hover:text-amber-300 border border-slate-700 text-[11px] font-semibold flex items-center gap-1 cursor-pointer"
+                          title="Update User Plan / Quota"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                          <span>Edit Quota</span>
+                        </button>
+
+                        <a
+                          href={`mailto:${u.email}?subject=Vettingly%20Account%20Update`}
+                          className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-emerald-500/20 text-slate-300 hover:text-emerald-300 border border-slate-700 text-[11px] font-semibold flex items-center gap-1"
+                        >
+                          <Mail className="w-3.5 h-3.5" />
+                          <span>Email</span>
+                        </a>
+
+                        <button
+                          type="button"
+                          disabled={deletingUserId === u.id}
+                          onClick={() => handleDeleteSignedInUser(u)}
+                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-slate-700 cursor-pointer"
+                          title="Remove User Record"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       )}

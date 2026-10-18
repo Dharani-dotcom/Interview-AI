@@ -14,6 +14,8 @@
         "dailyStreak": { "type": "number" },
         "overallScore": { "type": "number" },
         "totalInterviews": { "type": "number" },
+        "authMethod": { "type": "string", "maxLength": 50 },
+        "lastLoginAt": { "type": "string", "maxLength": 100 },
         "createdAt": { "type": "string" },
         "updatedAt": { "type": "string" }
       },

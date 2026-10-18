@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { UserProfile, UserUsageState } from '../types';
-import { signInWithGoogle, signOutUser } from '../lib/firebase';
+import { signInWithGoogle, signOutUser, recordUserSignInToFirestore } from '../lib/firebase';
 import {
   X,
   CheckCircle2,
@@ -53,11 +53,30 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   if (!isOpen) return null;
 
-  const completeSignInAndClose = (userName: string, userEmail: string, avatar: string, selectedRole: string) => {
+  const completeSignInAndClose = (
+    userName: string,
+    userEmail: string,
+    avatar: string,
+    selectedRole: string,
+    authMethod: 'Google' | 'Name & Email' = 'Name & Email',
+    uid?: string
+  ) => {
+    const resolvedId = uid || userEmail.trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, '_');
+
+    // Record user sign-in (Google or Name & Email) in Firestore & Server so Admin sees all signed-in users
+    recordUserSignInToFirestore({
+      userId: resolvedId,
+      name: userName,
+      email: userEmail,
+      avatar,
+      targetRole: selectedRole,
+      authMethod
+    });
+
     if (setUser) {
       setUser((prev) => ({
         ...prev,
-        id: prev?.id || userEmail.replace(/[^a-zA-Z0-9]/g, '_'),
+        id: resolvedId,
         name: userName,
         email: userEmail,
         avatar: avatar,
@@ -92,7 +111,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         authUser.photoURL ||
         `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(userEmail)}`;
 
-      completeSignInAndClose(userName, userEmail, avatar, selectedRole);
+      completeSignInAndClose(userName, userEmail, avatar, selectedRole, 'Google', authUser.uid);
     } catch (err: any) {
       setShowQuickSignIn(true);
       if (
@@ -123,7 +142,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
     const selectedRole = isCustomRole ? (customRole.trim() || targetRole) : targetRole;
     const avatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(cleanEmail)}`;
-    completeSignInAndClose(cleanName, cleanEmail, avatar, selectedRole);
+    completeSignInAndClose(cleanName, cleanEmail, avatar, selectedRole, 'Name & Email');
   };
 
   const handleLogout = async () => {

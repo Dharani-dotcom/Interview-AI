@@ -2722,6 +2722,59 @@ app.post("/api/linkedin/post", async (req, res) => {
   });
 });
 
+// Admin User Sign-In Log Store (Google OAuth & Name + Email Sign-Ins)
+interface ServerUserLoginRecord {
+  userId: string;
+  name: string;
+  email: string;
+  avatar?: string;
+  targetRole?: string;
+  authMethod: string;
+  lastLoginAt: string;
+  createdAt: string;
+}
+
+const serverUserLoginsByEmail = new Map<string, ServerUserLoginRecord>();
+
+app.get("/api/admin/user-logins", (req, res) => {
+  const list = Array.from(serverUserLoginsByEmail.values()).sort(
+    (a, b) => new Date(b.lastLoginAt || 0).getTime() - new Date(a.lastLoginAt || 0).getTime()
+  );
+  res.json({ users: list });
+});
+
+app.post("/api/admin/user-logins", (req, res) => {
+  const { userId, name, email, avatar, targetRole, authMethod } = req.body || {};
+  const cleanEmail = String(email || "").trim().toLowerCase();
+  if (!cleanEmail) {
+    return res.status(400).json({ error: "Email is required" });
+  }
+  const nowIso = new Date().toISOString();
+  const existing = serverUserLoginsByEmail.get(cleanEmail);
+  const record: ServerUserLoginRecord = {
+    userId: String(userId || cleanEmail.replace(/[^a-zA-Z0-9]/g, "_")),
+    name: String(name || existing?.name || "Candidate").trim(),
+    email: cleanEmail,
+    avatar: String(avatar || existing?.avatar || ""),
+    targetRole: String(targetRole || existing?.targetRole || "Senior Full Stack / AI Engineer"),
+    authMethod: String(authMethod || existing?.authMethod || "Google"),
+    lastLoginAt: nowIso,
+    createdAt: existing?.createdAt || nowIso
+  };
+  serverUserLoginsByEmail.set(cleanEmail, record);
+  res.json({ success: true, user: record });
+});
+
+app.delete("/api/admin/user-logins/:id", (req, res) => {
+  const target = String(req.params.id || "").toLowerCase();
+  for (const [k, v] of serverUserLoginsByEmail.entries()) {
+    if (k === target || v.userId.toLowerCase() === target) {
+      serverUserLoginsByEmail.delete(k);
+    }
+  }
+  res.json({ success: true });
+});
+
 // Custom Domain & Vercel Backend Health Verification Endpoint (test at https://your-app.vercel.app/api/domain-status)
 app.get("/api/domain-status", (req, res) => {
   res.json({

@@ -10,7 +10,8 @@ import {
   subscribeToUserInterviewReports,
   saveInterviewReportToFirestore,
   consumeFeatureUsage,
-  getUserProfileFromFirestore
+  getUserProfileFromFirestore,
+  recordUserSignInToFirestore
 } from './lib/firebase';
 import { initClientCyberProtection } from './lib/cyberProtection';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -83,6 +84,17 @@ export function App() {
         const defaultAvatar =
           fbUser.photoURL ||
           `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(fbUser.email || fbUser.uid)}`;
+
+        // Record Google sign-in in Firestore & server so Admin sees every Google login
+        if (fbUser.email) {
+          recordUserSignInToFirestore({
+            userId: fbUser.uid,
+            name: fbUser.displayName || 'Candidate',
+            email: fbUser.email,
+            avatar: defaultAvatar,
+            authMethod: 'Google'
+          });
+        }
 
         // 1. Immediately mark user as logged in and close Auth modal so the UI never hangs
         setUserProfile((prev) => ({

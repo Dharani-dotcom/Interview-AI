@@ -93,6 +93,92 @@ export async function testConnection() {
   }
 }
 
+// Record any user sign-in (Google OAuth or Direct Name & Email) to Firestore & Server for Admin visibility
+export async function recordUserSignInToFirestore(params: {
+  userId?: string;
+  name: string;
+  email: string;
+  avatar?: string;
+  targetRole?: string;
+  authMethod: 'Google' | 'Name & Email';
+}) {
+  const cleanEmail = (params.email || '').trim().toLowerCase();
+  if (!cleanEmail) return;
+
+  const emailSafeId = cleanEmail.replace(/[^a-zA-Z0-9]/g, '_');
+  const docId = params.userId || emailSafeId;
+  const nowIso = new Date().toISOString();
+  const defaultAvatar =
+    params.avatar ||
+    `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(cleanEmail)}`;
+
+  const payload = {
+    userId: docId,
+    name: (params.name || 'Candidate').trim(),
+    email: cleanEmail,
+    avatar: defaultAvatar,
+    role: 'Software Engineer',
+    targetRole: params.targetRole || 'Senior Full Stack / AI Engineer',
+    authMethod: params.authMethod,
+    lastLoginAt: nowIso,
+    updatedAt: nowIso
+  };
+
+  // 1. Save to Firestore /users/{docId}
+  try {
+    const userRef = doc(db, 'users', docId);
+    const snap = await getDoc(userRef);
+    if (!snap.exists()) {
+      await setDoc(userRef, {
+        ...payload,
+        dailyStreak: 1,
+        overallScore: 88,
+        totalInterviews: 1,
+        createdAt: nowIso
+      });
+    } else {
+      await setDoc(userRef, payload, { merge: true });
+    }
+  } catch (err) {
+    handleFirestoreError(err, OperationType.WRITE, `users/${docId}`);
+  }
+
+  // 2. Ensure initial userUsage doc exists so Admin can also view/edit their quota
+  try {
+    const usageRef = doc(db, 'userUsage', docId);
+    const usageSnap = await getDoc(usageRef);
+    if (!usageSnap.exists()) {
+      await setDoc(usageRef, {
+        userId: docId,
+        userEmail: cleanEmail,
+        planId: 'free',
+        planName: 'Free Trial',
+        totalAllowedUses: 2,
+        usedCount: 0,
+        remainingUses: 2,
+        isUnlimited: false,
+        updatedAt: nowIso
+      });
+    }
+  } catch {
+    // non-blocking
+  }
+
+  // 3. Also notify backend /api/admin/user-logins for instant cross-session fallback
+  try {
+    await fetch('/api/admin/user-logins', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...payload,
+        createdAt: nowIso
+      })
+    });
+  } catch {
+    // non-blocking
+  }
+}
+
 // Google Sign-In with popup & non-blocking real-time Firestore persistence
 export async function signInWithGoogle(customTargetRole?: string) {
   try {
@@ -103,41 +189,18 @@ export async function signInWithGoogle(customTargetRole?: string) {
       // Run Firestore profile and usage initialization in the background so the Sign-In modal closes immediately
       (async () => {
         try {
-          const userRef = doc(db, 'users', user.uid);
-          const existingSnap = await getDoc(userRef);
-
           const defaultAvatar =
             user.photoURL ||
             `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(user.email || user.uid)}`;
 
-          if (!existingSnap.exists()) {
-            await setDoc(userRef, {
-              userId: user.uid,
-              name: user.displayName || 'Candidate',
-              email: user.email || '',
-              avatar: defaultAvatar,
-              role: 'Software Engineer',
-              targetRole: customTargetRole || 'Senior Full Stack / AI Engineer',
-              dailyStreak: 1,
-              overallScore: 88,
-              totalInterviews: 1,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString()
-            });
-          } else {
-            const existingData = existingSnap.data();
-            await setDoc(
-              userRef,
-              {
-                name: user.displayName || existingData.name || 'Candidate',
-                email: user.email || existingData.email || '',
-                avatar: user.photoURL || existingData.avatar || defaultAvatar,
-                ...(customTargetRole ? { targetRole: customTargetRole } : {}),
-                updatedAt: new Date().toISOString()
-              },
-              { merge: true }
-            );
-          }
+          await recordUserSignInToFirestore({
+            userId: user.uid,
+            name: user.displayName || 'Candidate',
+            email: user.email || '',
+            avatar: defaultAvatar,
+            targetRole: customTargetRole || 'Senior Full Stack / AI Engineer',
+            authMethod: 'Google'
+          });
 
           // Initialize / ensure user usage doc exists in cloud database for this exact UID
           const usageRef = doc(db, 'userUsage', user.uid);
@@ -875,4 +938,83 @@ export async function deleteMockTestScoreFromFirestore(scoreId: string) {
   }
 }
 
+// =========================================================================
+// ADMIN REAL-TIME REGISTERED USERS & SIGN-IN TELEMETRY (Google & Name+Email)
+// =========================================================================
 
+export interface RegisteredUserRecord {
+  id: string;
+  userId: string;
+  name: string;
+  email: string;
+  avatar?: string;
+  role?: string;
+  targetRole?: string;
+  authMethod?: 'Google' | 'Name & Email' | string;
+  lastLoginAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export function subscribeToAllRegisteredUsers(onData: (users: RegisteredUserRecord[]) => void) {
+  const colRef = collection(db, 'users');
+  return onSnapshot(
+    colRef,
+    (snapshot) => {
+      const items = snapshot.docs.map((d) => {
+        const raw = d.data() as any;
+        return {
+          id: d.id,
+          userId: raw.userId || d.id,
+          name: raw.name || 'Candidate',
+          email: raw.email || '',
+          avatar: raw.avatar || '',
+          role: raw.role || 'Software Engineer',
+          targetRole: raw.targetRole || 'Senior Full Stack / AI Engineer',
+          authMethod:
+            raw.authMethod ||
+            (d.id.includes('_') ? 'Name & Email' : 'Google'),
+          lastLoginAt: raw.lastLoginAt || raw.updatedAt || raw.createdAt || new Date().toISOString(),
+          createdAt: raw.createdAt || raw.updatedAt || new Date().toISOString(),
+          updatedAt: raw.updatedAt || raw.createdAt || new Date().toISOString()
+        } as RegisteredUserRecord;
+      });
+      items.sort(
+        (a, b) =>
+          new Date(b.lastLoginAt || b.updatedAt || 0).getTime() -
+          new Date(a.lastLoginAt || a.updatedAt || 0).getTime()
+      );
+      onData(items);
+    },
+    (err) => {
+      handleFirestoreError(err, OperationType.LIST, 'users');
+    }
+  );
+}
+
+export function subscribeToAllUserUsages(onData: (usages: UserUsageState[]) => void) {
+  const colRef = collection(db, 'userUsage');
+  return onSnapshot(
+    colRef,
+    (snapshot) => {
+      const items = snapshot.docs.map((d) => ({
+        userId: d.id,
+        ...(d.data() as any)
+      })) as UserUsageState[];
+      onData(items);
+    },
+    (err) => {
+      handleFirestoreError(err, OperationType.LIST, 'userUsage');
+    }
+  );
+}
+
+export async function deleteRegisteredUserFromFirestore(userId: string) {
+  try {
+    await deleteDoc(doc(db, 'users', userId));
+    return true;
+  } catch (err) {
+    handleFirestoreError(err, OperationType.DELETE, `users/${userId}`);
+    throw err;
+  }
+}

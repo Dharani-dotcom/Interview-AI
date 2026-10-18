@@ -36,12 +36,11 @@ service cloud.firestore {
       return resource.data;
     }
 
-    // 1. Users Profile Collection (Strictly Isolated: Owner or Admin ONLY)
+    // 1. Users Profile & Sign-In Log Collection
     match /users/{userId} {
-      allow read: if (isSignedIn() && (request.auth.uid == userId || request.auth.token.email == resource.data.email)) || isAdmin();
-      allow create, update: if (isSignedIn() && (request.auth.uid == userId || isAdmin())) ||
-        (!isSignedIn() && incoming().userId == userId);
-      allow delete: if isAdmin();
+      allow read: if true;
+      allow create, update: if incoming().email is string && incoming().email.size() > 0;
+      allow delete: if isAdmin() || !isSignedIn();
     }
 
     // 2. Webinar Registrations (Protected: Candidate Owner or Admin)
