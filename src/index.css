@@ -63,6 +63,19 @@
   .glow-purple {
     box-shadow: 0 0 25px rgba(99, 102, 241, 0.2);
   }
+
+  .font-roman {
+    font-family: 'Times New Roman', Times, 'Liberation Serif', Georgia, serif;
+    letter-spacing: 0.01em;
+  }
+
+  .roman-paper {
+    font-family: 'Times New Roman', Times, 'Liberation Serif', Georgia, serif;
+    background: #ffffff;
+    color: #0f172a;
+    line-height: 1.65;
+    letter-spacing: 0.01em;
+  }
 }
 
 /* Custom Scrollbar */

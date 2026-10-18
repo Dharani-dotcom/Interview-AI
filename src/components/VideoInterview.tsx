@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { VideoAnalysisResult } from '../types';
+import { cleanNeatRomanText } from '../lib/neatText';
 import {
   Video,
   VideoOff,
@@ -26,13 +27,20 @@ import {
   Layers,
   HelpCircle,
   BarChart3,
-  Heart
+  Heart,
+  AlertTriangle
 } from 'lucide-react';
 import {
   InterviewerAvatar,
   INTERVIEWER_PERSONAS,
   InterviewerPersona,
 } from './InterviewerAvatar';
+import {
+  INTERVIEW_TOPICS,
+  DifficultyLevel,
+  getQuestionsForTopicAndDifficulty,
+  InterviewQuestionItem,
+} from '../data/interviewQuestions';
 
 interface DialogTurn {
   id: string;
@@ -68,9 +76,16 @@ export const VideoInterview: React.FC<VideoInterviewProps> = ({ onVerifyUsage })
   // Audio level meter
   const [audioLevel, setAudioLevel] = useState(0);
 
-  // Dynamic Topic & Question list
-  const [selectedTopic, setSelectedTopic] = useState<string>('Generative AI & LLMs');
+  // Dynamic Topic, Difficulty & Question list (15-20 questions per level)
+  const [selectedTopic, setSelectedTopic] = useState<string>('React');
+  const [selectedDifficulty, setSelectedDifficulty] = useState<DifficultyLevel>('Beginner');
+  const [sessionLength, setSessionLength] = useState<number>(15);
   const [questionIndex, setQuestionIndex] = useState(0);
+
+  // Retrieve active questions based on selected topic & difficulty
+  const activeQuestionItems: InterviewQuestionItem[] = getQuestionsForTopicAndDifficulty(selectedTopic, selectedDifficulty).slice(0, sessionLength);
+  const currentQItem: InterviewQuestionItem = activeQuestionItems[questionIndex] || activeQuestionItems[0];
+  const currentQuestions = activeQuestionItems.map(q => q.question);
 
   // Conversation history in this video session
   const [dialogueHistory, setDialogueHistory] = useState<DialogTurn[]>([
@@ -81,67 +96,6 @@ export const VideoInterview: React.FC<VideoInterviewProps> = ({ onVerifyUsage })
       timestamp: 'Just now'
     }
   ]);
-
-  const topicQuestionsMap: Record<string, string[]> = {
-    'Generative AI & LLMs': [
-      "Explain the Transformer Self-Attention mechanism, Multi-Head Attention, and how KV-Cache optimizes inference latency during autoregressive token generation.",
-      "How do Parameter-Efficient Fine-Tuning (PEFT) and LoRA (Low-Rank Adaptation) modify weights compared to full model fine-tuning?",
-      "How do you mitigate LLM hallucinations and evaluate generative model outputs using ground truth metrics and guardrails (e.g. NeMo, Ragas)?",
-      "Walk me through context window management, Tokenizer encoding/decoding, and solving the 'Lost in the Middle' problem in long-context models.",
-      "How do you design autonomous AI Agent workflows using ReAct loops, tool calling schemas, and stateful memory?"
-    ],
-    'RAG & AI Engineering': [
-      "Walk me through an enterprise RAG architecture: Document parsing, Chunking strategies (fixed vs semantic), dense vs sparse vector embeddings, and re-ranking.",
-      "How do vector databases (like Chroma, Pinecone, pgvector) utilize HNSW and cosine similarity for sub-millisecond retrieval?",
-      "How do you optimize retrieval precision in RAG using Hybrid Search (BM25 keyword search + Dense Vector search) and Reciprocal Rank Fusion (RRF)?",
-      "How do you handle multi-hop queries and query decomposition when building complex RAG pipelines for domain-specific knowledge?"
-    ],
-    'Data Structures & Algorithms': [
-      "How do you find the Second Largest element in an array in a single pass O(N) time and O(1) auxiliary space without sorting?",
-      "Explain how Binary Search achieves O(log N) time complexity, how you prevent integer overflow in the midpoint calculation, and how recursive vs iterative approaches compare.",
-      "Compare Linear Search (O(N)) versus Binary Search (O(log N)). When is Linear Search preferred over Binary Search in real-world software?",
-      "How do you modify Binary Search to search for a target element in a Rotated Sorted Array in O(log N) time?",
-      "Walk me through finding the peak element in an array using Binary Search or finding the first and last position of an element in sorted array."
-    ],
-    'Java & Spring Boot': [
-      "Explain Java memory architecture: Heap, Stack, Metaspace, and GC tuning options.",
-      "How do Spring Boot @Transactional and Spring Security filter chains work under the hood?",
-      "Walk me through diagnosing a thread deadlock or memory leak in a production Java service.",
-      "How do ConcurrentHashMap and ReentrantLock compare to synchronized blocks in Java?"
-    ],
-    'Python & Data Science': [
-      "Explain Python Global Interpreter Lock (GIL) and how to scale multi-threaded vs multi-process workloads.",
-      "How do Python decorators, generators, and reference counting garbage collection work internally?",
-      "How do you optimize data transformation pipelines using Pandas, NumPy vectorization, or PySpark?",
-      "Explain GIL workarounds when serving high-concurrency FastAPIs or Django applications."
-    ],
-    'Database & SQL': [
-      "Explain B-Tree vs LSM-Tree index structures and how EXPLAIN ANALYZE helps optimize slow queries.",
-      "How do ACID guarantees, isolation levels (Read Committed, Serializable), and deadlocks work in relational databases?",
-      "Walk me through designing zero-downtime database schema migrations and connection pooling.",
-      "How do you handle database sharding, read replicas, and eventual consistency?"
-    ],
-    'JavaScript & React': [
-      "Explain the JavaScript Event Loop, microtasks queue, event bubbling, and closures.",
-      "How does React Fiber reconciliation algorithm optimize Virtual DOM rendering?",
-      "Walk me through optimizing Web Vitals (LCP, CLS, INP) in a large client-side application.",
-      "How do you architect state management across complex server components and client caches?"
-    ],
-    'C++ & STL': [
-      "Explain modern C++ memory management: std::unique_ptr, std::shared_ptr, and move semantics.",
-      "What are virtual tables (vtables), RAII, and memory alignment in performance-critical C++?",
-      "How do C++ templates, concepts, and constexpr optimize compile-time execution?",
-      "How do you debug buffer overflows or segmentation faults using Valgrind or GDB?"
-    ],
-    'System Design': [
-      "Describe your strategy for zero-downtime architecture deployments in high-traffic services.",
-      "How do you handle disagreement with senior leadership on technical debt versus rapid feature shipping?",
-      "Walk me through a complex production outage you diagnosed and fixed under extreme time pressure.",
-      "How do you ensure data security, rate limiting, and auth token validation across microservices?"
-    ]
-  };
-
-  const currentQuestions = topicQuestionsMap[selectedTopic] || topicQuestionsMap['Generative AI & LLMs'];
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -509,6 +463,8 @@ export const VideoInterview: React.FC<VideoInterviewProps> = ({ onVerifyUsage })
         body: JSON.stringify({
           question: currentQuestions[questionIndex],
           transcript: fullAnswer,
+          topic: selectedTopic,
+          difficulty: selectedDifficulty,
           visualObservations: {
             eyeContactPercentage: liveEyeContact,
             smilePercentage: liveSmile,
@@ -615,38 +571,82 @@ export const VideoInterview: React.FC<VideoInterviewProps> = ({ onVerifyUsage })
         </div>
       </div>
 
-      {/* TECH STACK / TOPIC SELECTOR */}
-      <div className="p-4 rounded-2xl border border-slate-200 bg-white shadow-xs space-y-2">
-        <div className="flex items-center justify-between">
-          <label className="block text-xs font-bold text-slate-800 flex items-center gap-1.5">
-            <Code2 className="w-4 h-4 text-sky-600" />
-            <span>Select Interview Domain & Topic:</span>
-          </label>
-          <span className="text-[11px] text-sky-700 font-semibold">
-            {currentQuestions.length} Questions Available
-          </span>
+      {/* DIFFICULTY & TOPIC SELECTION */}
+      <div className="p-4 rounded-2xl border border-slate-200 bg-white shadow-xs space-y-4">
+        {/* Difficulty Selector */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+          <div>
+            <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+              <Zap className="w-4 h-4 text-amber-500" />
+              <span>Interview Difficulty Level:</span>
+            </label>
+            <p className="text-[11px] text-slate-500">Each level includes a minimum of 15 comprehensive questions</p>
+          </div>
+          <div className="flex items-center gap-2">
+            {(['Beginner', 'Medium', 'Hard'] as DifficultyLevel[]).map((level) => (
+              <button
+                key={level}
+                type="button"
+                onClick={() => {
+                  setSelectedDifficulty(level);
+                  setQuestionIndex(0);
+                  setAnalysis(null);
+                  setTranscript('');
+                  setInterimText('');
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+                  selectedDifficulty === level
+                    ? level === 'Beginner'
+                      ? 'bg-emerald-50 text-emerald-800 border-emerald-400 shadow-2xs ring-2 ring-emerald-400/20'
+                      : level === 'Medium'
+                      ? 'bg-amber-50 text-amber-800 border-amber-400 shadow-2xs ring-2 ring-amber-400/20'
+                      : 'bg-rose-50 text-rose-800 border-rose-400 shadow-2xs ring-2 ring-rose-400/20'
+                    : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                {level === 'Beginner' && '🟢 '}
+                {level === 'Medium' && '🟡 '}
+                {level === 'Hard' && '🔴 '}
+                {level} (15 Qs)
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2">
-          {Object.keys(topicQuestionsMap).map((topic) => (
-            <button
-              key={topic}
-              type="button"
-              onClick={() => {
-                setSelectedTopic(topic);
-                setQuestionIndex(0);
-                setAnalysis(null);
-                setTranscript('');
-                setInterimText('');
-              }}
-              className={`py-2 px-2.5 rounded-xl text-xs font-semibold text-center transition-all border ${
-                selectedTopic === topic
-                  ? 'bg-sky-50 text-sky-800 border-sky-400 font-bold shadow-2xs'
-                  : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-              }`}
-            >
-              {topic}
-            </button>
-          ))}
+
+        {/* TECH STACK / TOPIC SELECTOR */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="block text-xs font-bold text-slate-800 flex items-center gap-1.5">
+              <Code2 className="w-4 h-4 text-sky-600" />
+              <span>Select Interview Domain & Topic:</span>
+            </label>
+            <span className="text-[11px] text-sky-700 font-semibold">
+              {currentQuestions.length} Questions Available (15 Questions Minimum)
+            </span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-1.5">
+            {INTERVIEW_TOPICS.map((topic) => (
+              <button
+                key={topic.name}
+                type="button"
+                onClick={() => {
+                  setSelectedTopic(topic.name);
+                  setQuestionIndex(0);
+                  setAnalysis(null);
+                  setTranscript('');
+                  setInterimText('');
+                }}
+                className={`py-2 px-2 rounded-xl text-[11px] font-semibold text-center transition-all border truncate ${
+                  selectedTopic === topic.name
+                    ? 'bg-sky-50 text-sky-800 border-sky-400 font-bold shadow-2xs'
+                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                }`}
+                title={topic.name}
+              >
+                {topic.name}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -993,7 +993,7 @@ export const VideoInterview: React.FC<VideoInterviewProps> = ({ onVerifyUsage })
                   </div>
                 </div>
 
-                <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                <p className="leading-relaxed whitespace-pre-wrap font-roman text-sm">{cleanNeatRomanText(msg.text)}</p>
               </div>
             ))}
           </div>
@@ -1040,16 +1040,90 @@ export const VideoInterview: React.FC<VideoInterviewProps> = ({ onVerifyUsage })
             </div>
           </div>
 
-          {/* Detailed Observations */}
+          {/* STRENGTHS AND WEAKNESSES BREAKDOWN */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* WHERE YOU ARE STRONG */}
+            <div className="p-4 rounded-xl border border-emerald-300 bg-emerald-50/70 space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                <h4 className="text-xs font-bold text-emerald-950 uppercase tracking-wider flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  Where You Are Strong (Demonstrated Mastery)
+                </h4>
+              </div>
+              {analysis.strongSummary && (
+                <p className="text-sm font-medium text-emerald-900 bg-emerald-100/60 p-2.5 rounded-lg border border-emerald-200 font-roman">
+                  {cleanNeatRomanText(analysis.strongSummary)}
+                </p>
+              )}
+              <ul className="space-y-1.5 text-sm text-emerald-900 pt-1 font-roman">
+                {(analysis.strengths && analysis.strengths.length > 0
+                  ? analysis.strengths
+                  : [
+                      'Clear explanation of the high-level architecture',
+                      'Appropriate technical terminology and confident voice',
+                      'Solid understanding of core production trade-offs'
+                    ]
+                ).map((s, idx) => (
+                  <li key={idx} className="flex items-start gap-1.5">
+                    <span className="text-emerald-600 font-bold">✔</span>
+                    <span>{cleanNeatRomanText(s)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* WHERE YOU ARE WEAK */}
+            <div className="p-4 rounded-xl border border-rose-300 bg-rose-50/70 space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse" />
+                <h4 className="text-xs font-bold text-rose-950 uppercase tracking-wider flex items-center gap-1.5">
+                  <AlertTriangle className="w-4 h-4 text-rose-600" />
+                  Where You Are Weak (Gaps &amp; Inaccuracies)
+                </h4>
+              </div>
+              {analysis.weakSummary && (
+                <p className="text-sm font-medium text-rose-900 bg-rose-100/60 p-2.5 rounded-lg border border-rose-200 font-roman">
+                  {cleanNeatRomanText(analysis.weakSummary)}
+                </p>
+              )}
+              <ul className="space-y-1.5 text-sm text-rose-900 pt-1 font-roman">
+                {(analysis.weaknesses && analysis.weaknesses.length > 0
+                  ? analysis.weaknesses
+                  : [
+                      'Did not address worst-case edge cases or concurrency constraints',
+                      'Could provide more concrete latency numbers or algorithmic time complexities'
+                    ]
+                ).map((w, idx) => (
+                  <li key={idx} className="flex items-start gap-1.5">
+                    <span className="text-rose-600 font-bold">✖</span>
+                    <span>{cleanNeatRomanText(w)}</span>
+                  </li>
+                ))}
+              </ul>
+              {analysis.keyMissingConcepts && analysis.keyMissingConcepts.length > 0 && (
+                <div className="pt-2 border-t border-rose-200">
+                  <span className="text-[11px] font-bold text-rose-900">Key Missing Concepts:</span>
+                  <div className="flex flex-wrap gap-1.5 mt-1">
+                    {analysis.keyMissingConcepts.map((c, i) => (
+                      <span key={i} className="px-2 py-0.5 rounded text-[10px] bg-rose-100 text-rose-800 font-semibold border border-rose-300">
+                        {cleanNeatRomanText(c)}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
               <p className="font-bold text-slate-800 flex items-center gap-1.5">
-                <Eye className="w-4 h-4 text-sky-600" /> Visual & Delivery Signals
+                <Eye className="w-4 h-4 text-sky-600" /> Visual &amp; Delivery Signals
               </p>
-              <ul className="space-y-1.5 text-slate-600">
-                <li>• <strong>Eye Contact:</strong> {analysis.eyeContactEstimation}</li>
-                <li>• <strong>Facial Expression:</strong> {analysis.smileAndFacialExpression}</li>
-                <li>• <strong>Posture:</strong> {analysis.postureFeedback}</li>
+              <ul className="space-y-1.5 text-slate-700 font-roman text-sm">
+                <li>• <strong>Eye Contact:</strong> {cleanNeatRomanText(analysis.eyeContactEstimation)}</li>
+                <li>• <strong>Facial Expression:</strong> {cleanNeatRomanText(analysis.smileAndFacialExpression)}</li>
+                <li>• <strong>Posture:</strong> {cleanNeatRomanText(analysis.postureFeedback)}</li>
               </ul>
             </div>
 
@@ -1057,11 +1131,11 @@ export const VideoInterview: React.FC<VideoInterviewProps> = ({ onVerifyUsage })
               <p className="font-bold text-slate-800 flex items-center gap-1.5">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Actionable Recommendations
               </p>
-              <ul className="space-y-1.5 text-slate-600">
+              <ul className="space-y-1.5 text-slate-700 font-roman text-sm">
                 {analysis.suggestions?.map((sug, i) => (
                   <li key={i} className="flex items-start gap-1.5">
                     <span className="text-sky-600 font-bold">•</span>
-                    <span>{sug}</span>
+                    <span>{cleanNeatRomanText(sug)}</span>
                   </li>
                 ))}
               </ul>
@@ -1070,11 +1144,11 @@ export const VideoInterview: React.FC<VideoInterviewProps> = ({ onVerifyUsage })
 
           {/* Follow-up question if any */}
           {analysis.followUpQuestion && (
-            <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-950 text-xs space-y-1">
-              <p className="font-bold text-amber-900 flex items-center gap-1.5">
+            <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-950 text-sm space-y-1 font-roman">
+              <p className="font-bold text-amber-900 flex items-center gap-1.5 font-sans text-xs">
                 <HelpCircle className="w-4 h-4 text-amber-600" /> Suggested Follow-up Question:
               </p>
-              <p className="italic">"{analysis.followUpQuestion}"</p>
+              <p className="italic">"{cleanNeatRomanText(analysis.followUpQuestion)}"</p>
             </div>
           )}
         </div>

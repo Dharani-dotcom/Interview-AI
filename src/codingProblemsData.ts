@@ -1809,6 +1809,420 @@ ListNode* mergeKLists(vector<ListNode*>& lists) {
     testCases: [
       { input: 'lists = [[1,4,5],[1,3,4],[2,6]]', expected: '[1,1,2,3,4,4,5,6]' },
       { input: 'lists = []', expected: '[]' }
+    ],
+    company: 'Google',
+    companyTags: ['Google', 'Amazon', 'Microsoft', 'Meta'],
+    pyqYear: '2024 Actual PYQ',
+    examSource: 'Google L4/L5 Hard Coding Assessment'
+  },
+
+  // ==========================================
+  // 4. EMBEDDED & HARDWARE SWE (HONEYWELL, QUALCOMM, TI)
+  // ==========================================
+  {
+    id: 'prob-reverse-bits',
+    leetcodeNumber: 190,
+    title: 'Reverse Bits & Endianness Swap (32-bit Integer)',
+    difficulty: 'Easy',
+    experienceLevel: 'Fresher (0-1 yrs)',
+    role: 'Embedded Software Engineer',
+    category: 'Bit Manipulation',
+    company: 'Honeywell',
+    companyTags: ['Honeywell', 'Qualcomm', 'Texas Instruments'],
+    pyqYear: '2024 Actual PYQ',
+    examSource: 'Honeywell Avionics & Embedded Core Drive',
+    description: 'Reverse bits of a given 32-bit unsigned integer `n`. In avionics and embedded flight controllers, converting between Little-Endian and Big-Endian bitstreams is a frequent hardware requirement. Provide an optimal bitwise manipulation solution in O(1) time and O(1) space.',
+    starterCode: {
+      Python: `def reverseBits(n: int) -> int:
+    # Reverse all 32 bits of unsigned integer n
+    pass`,
+      JavaScript: `function reverseBits(n) {
+  // Reverse all 32 bits of unsigned integer n
+}`,
+      Java: `public class Solution {
+    public int reverseBits(int n) {
+        // Reverse all 32 bits of unsigned integer n
+        return 0;
+    }
+}`,
+      'C++': `class Solution {
+public:
+    uint32_t reverseBits(uint32_t n) {
+        // Reverse all 32 bits of unsigned integer n
+        return 0;
+    }
+};`,
+      SQL: `SELECT n FROM numbers;`
+    },
+    solutions: {
+      Python: `def reverseBits(n: int) -> int:
+    result = 0
+    for i in range(32):
+        bit = (n >> i) & 1
+        result = result | (bit << (31 - i))
+    return result`,
+      JavaScript: `function reverseBits(n) {
+  let result = 0;
+  for (let i = 0; i < 32; i++) {
+    result = (result << 1) | (n & 1);
+    n >>>= 1;
+  }
+  return result >>> 0;
+}`,
+      Java: `public class Solution {
+    public int reverseBits(int n) {
+        int result = 0;
+        for (int i = 0; i < 32; i++) {
+            result = (result << 1) | (n & 1);
+            n >>>= 1;
+        }
+        return result;
+    }
+}`,
+      'C++': `class Solution {
+public:
+    uint32_t reverseBits(uint32_t n) {
+        uint32_t result = 0;
+        for (int i = 0; i < 32; i++) {
+            result = (result << 1) | (n & 1);
+            n >>= 1;
+        }
+        return result;
+    }
+};`,
+      SQL: `SELECT n FROM numbers;`
+    },
+    hints: [
+      'Extract the least significant bit (LSB) using `n & 1`.',
+      'Shift your result left by 1 and OR it with the extracted bit.',
+      'Shift n right by 1 unsigned (`>>>= 1`). Repeat for 32 iterations.'
+    ],
+    explanation: 'By shifting the accumulator left by 1 and appending the least significant bit of n (then shifting n right unsigned), all 32 bits are reversed in exactly 32 operations, which is O(1) time and O(1) space.',
+    timeComplexity: 'O(1) [Fixed 32 iterations]',
+    spaceComplexity: 'O(1)',
+    testCases: [
+      { input: 'n = 00000010100101000001111010011100 (43261596)', expected: '964176192' },
+      { input: 'n = 11111111111111111111111111111101 (4294967293)', expected: '3221225471' }
+    ]
+  },
+  {
+    id: 'prob-single-number',
+    leetcodeNumber: 136,
+    title: 'Single Number (Bitwise XOR Trick & O(1) Memory)',
+    difficulty: 'Easy',
+    experienceLevel: 'Fresher (0-1 yrs)',
+    role: 'Software Engineer',
+    category: 'Bit Manipulation',
+    company: 'Qualcomm',
+    companyTags: ['Qualcomm', 'Honeywell', 'Texas Instruments', 'Microsoft'],
+    pyqYear: '2024 Actual PYQ',
+    examSource: 'Qualcomm Digital Design & SWE Drive',
+    description: 'Given a non-empty array of integers `nums`, every element appears twice except for one unique element. Find that single unique element. You must implement a solution with linear O(N) runtime complexity and use only constant O(1) extra space without allocating hash tables.',
+    starterCode: {
+      Python: `def singleNumber(nums: list[int]) -> int:
+    # Write your O(N) time and O(1) space XOR solution
+    pass`,
+      JavaScript: `function singleNumber(nums) {
+  // Write your O(N) time and O(1) space XOR solution
+}`,
+      Java: `public class Solution {
+    public int singleNumber(int[] nums) {
+        return 0;
+    }
+}`,
+      'C++': `class Solution {
+public:
+    int singleNumber(vector<int>& nums) {
+        return 0;
+    }
+};`,
+      SQL: `SELECT num FROM numbers GROUP BY num HAVING COUNT(*) = 1;`
+    },
+    solutions: {
+      Python: `def singleNumber(nums: list[int]) -> int:
+    unique = 0
+    for num in nums:
+        unique ^= num
+    return unique`,
+      JavaScript: `function singleNumber(nums) {
+  let unique = 0;
+  for (const num of nums) {
+    unique ^= num;
+  }
+  return unique;
+}`,
+      Java: `public class Solution {
+    public int singleNumber(int[] nums) {
+        int unique = 0;
+        for (int num : nums) {
+            unique ^= num;
+        }
+        return unique;
+    }
+}`,
+      'C++': `class Solution {
+public:
+    int singleNumber(vector<int>& nums) {
+        int unique = 0;
+        for (int num : nums) {
+            unique ^= num;
+        }
+        return unique;
+    }
+};`,
+      SQL: `SELECT num FROM numbers GROUP BY num HAVING COUNT(*) = 1;`
+    },
+    hints: [
+      'Recall the properties of the Bitwise XOR operator: A ^ A = 0, and A ^ 0 = A.',
+      'XOR is both commutative and associative, meaning the order of operations does not matter.',
+      'If you XOR all numbers in the array together, every duplicate pair cancels out to 0, leaving strictly the single unique number.'
+    ],
+    explanation: 'Due to XOR properties (A ^ A = 0 and A ^ 0 = A), all pairs cancel each other out: (x1 ^ x1) ^ (x2 ^ x2) ... ^ unique = 0 ^ unique = unique. This achieves optimal O(N) time and O(1) space.',
+    timeComplexity: 'O(N)',
+    spaceComplexity: 'O(1)',
+    testCases: [
+      { input: 'nums = [2,2,1]', expected: '1' },
+      { input: 'nums = [4,1,2,1,2]', expected: '4' },
+      { input: 'nums = [1]', expected: '1' }
+    ]
+  },
+  {
+    id: 'prob-string-compression',
+    leetcodeNumber: 443,
+    title: 'Run-Length String Compression & In-Place Encoding',
+    difficulty: 'Medium',
+    experienceLevel: 'Fresher (0-1 yrs)',
+    role: 'Software Engineer',
+    category: 'Strings',
+    company: 'TCS',
+    companyTags: ['TCS', 'Infosys', 'Accenture', 'Cognizant', 'Wipro'],
+    pyqYear: '2024 Actual PYQ',
+    examSource: 'TCS Digital Advanced Coding Round',
+    description: 'Given an array of characters `chars`, compress it using the run-length encoding algorithm: For each consecutive group of identical characters, replace the group with the character followed by the group\'s length (if greater than 1). Modify the input array in-place using O(1) extra space and return the new length of the compressed array.',
+    starterCode: {
+      Python: `def compress(chars: list[str]) -> int:
+    # In-place string compression with O(1) extra space
+    pass`,
+      JavaScript: `function compress(chars) {
+  // In-place string compression with O(1) extra space
+}`,
+      Java: `public class Solution {
+    public int compress(char[] chars) {
+        return 0;
+    }
+}`,
+      'C++': `class Solution {
+public:
+    int compress(vector<char>& chars) {
+        return 0;
+    }
+};`,
+      SQL: `SELECT NULL;`
+    },
+    solutions: {
+      Python: `def compress(chars: list[str]) -> int:
+    write = 0
+    read = 0
+    n = len(chars)
+    while read < n:
+        curr_char = chars[read]
+        count = 0
+        while read < n and chars[read] == curr_char:
+            read += 1
+            count += 1
+        chars[write] = curr_char
+        write += 1
+        if count > 1:
+            for digit in str(count):
+                chars[write] = digit
+                write += 1
+    return write`,
+      JavaScript: `function compress(chars) {
+  let write = 0;
+  let read = 0;
+  const n = chars.length;
+  while (read < n) {
+    const currChar = chars[read];
+    let count = 0;
+    while (read < n && chars[read] === currChar) {
+      read++;
+      count++;
+    }
+    chars[write++] = currChar;
+    if (count > 1) {
+      for (const d of String(count)) {
+        chars[write++] = d;
+      }
+    }
+  }
+  return write;
+}`,
+      Java: `public class Solution {
+    public int compress(char[] chars) {
+        int write = 0;
+        int read = 0;
+        int n = chars.length;
+        while (read < n) {
+            char curr = chars[read];
+            int count = 0;
+            while (read < n && chars[read] == curr) {
+                read++;
+                count++;
+            }
+            chars[write++] = curr;
+            if (count > 1) {
+                for (char c : String.valueOf(count).toCharArray()) {
+                    chars[write++] = c;
+                }
+            }
+        }
+        return write;
+    }
+}`,
+      'C++': `class Solution {
+public:
+    int compress(vector<char>& chars) {
+        int write = 0;
+        int read = 0;
+        int n = chars.size();
+        while (read < n) {
+            char curr = chars[read];
+            int count = 0;
+            while (read < n && chars[read] == curr) {
+                read++;
+                count++;
+            }
+            chars[write++] = curr;
+            if (count > 1) {
+                string countStr = to_string(count);
+                for (char c : countStr) {
+                    chars[write++] = c;
+                }
+            }
+        }
+        return write;
+    }
+};`,
+      SQL: `SELECT NULL;`
+    },
+    hints: [
+      'Use a `read` pointer to scan consecutive characters and a `write` pointer to overwrite the array in-place.',
+      'Count consecutive occurrences: `while (read < n && chars[read] === current) count++`.',
+      'If count > 1, convert count to characters and write each digit.'
+    ],
+    explanation: 'The two-pointer technique (read and write) ensures each character is inspected once, yielding linear O(N) time and strictly O(1) auxiliary space.',
+    timeComplexity: 'O(N)',
+    spaceComplexity: 'O(1)',
+    testCases: [
+      { input: 'chars = ["a","a","b","b","c","c","c"]', expected: '6 (chars becomes ["a","2","b","2","c","3"])' },
+      { input: 'chars = ["a"]', expected: '1' }
+    ]
+  },
+  {
+    id: 'prob-subarray-sum-k',
+    leetcodeNumber: 560,
+    title: 'Subarray Sum Equals K (Prefix Sum & Hash Map)',
+    difficulty: 'Medium',
+    experienceLevel: 'Mid-Level (1-3 yrs)',
+    role: 'Software Engineer',
+    category: 'Arrays & Hashing',
+    company: 'Goldman Sachs',
+    companyTags: ['Goldman Sachs', 'Google', 'Microsoft', 'Amazon', 'Meta'],
+    pyqYear: '2024 Actual PYQ',
+    examSource: 'Goldman Sachs Engineering Online Assessment',
+    description: 'Given an array of integers `nums` and an integer `k`, return the total number of continuous subarrays whose sum equals to `k`. The numbers can be negative, zero, or positive, meaning a standard two-pointer sliding window will not work.',
+    starterCode: {
+      Python: `def subarraySum(nums: list[int], k: int) -> int:
+    # Optimal Prefix Sum + Hash Map solution
+    pass`,
+      JavaScript: `function subarraySum(nums, k) {
+  // Optimal Prefix Sum + Hash Map solution
+}`,
+      Java: `public class Solution {
+    public int subarraySum(int[] nums, int k) {
+        return 0;
+    }
+}`,
+      'C++': `class Solution {
+public:
+    int subarraySum(vector<int>& nums, int k) {
+        return 0;
+    }
+};`,
+      SQL: `SELECT NULL;`
+    },
+    solutions: {
+      Python: `def subarraySum(nums: list[int], k: int) -> int:
+    count = 0
+    current_sum = 0
+    prefix_map = {0: 1}
+    for num in nums:
+        current_sum += num
+        if (current_sum - k) in prefix_map:
+            count += prefix_map[current_sum - k]
+        prefix_map[current_sum] = prefix_map.get(current_sum, 0) + 1
+    return count`,
+      JavaScript: `function subarraySum(nums, k) {
+  let count = 0;
+  let currentSum = 0;
+  const prefixMap = new Map();
+  prefixMap.set(0, 1);
+  for (const num of nums) {
+    currentSum += num;
+    if (prefixMap.has(currentSum - k)) {
+      count += prefixMap.get(currentSum - k);
+    }
+    prefixMap.set(currentSum, (prefixMap.get(currentSum) || 0) + 1);
+  }
+  return count;
+}`,
+      Java: `public class Solution {
+    public int subarraySum(int[] nums, int k) {
+        int count = 0;
+        int currentSum = 0;
+        java.util.Map<Integer, Integer> map = new java.util.HashMap<>();
+        map.put(0, 1);
+        for (int num : nums) {
+            currentSum += num;
+            if (map.containsKey(currentSum - k)) {
+                count += map.get(currentSum - k);
+            }
+            map.put(currentSum, map.getOrDefault(currentSum, 0) + 1);
+        }
+        return count;
+    }
+}`,
+      'C++': `class Solution {
+public:
+    int subarraySum(vector<int>& nums, int k) {
+        int count = 0;
+        int currentSum = 0;
+        unordered_map<int, int> prefixMap;
+        prefixMap[0] = 1;
+        for (int num : nums) {
+            currentSum += num;
+            if (prefixMap.find(currentSum - k) != prefixMap.end()) {
+                count += prefixMap[currentSum - k];
+            }
+            prefixMap[currentSum]++;
+        }
+        return count;
+    }
+};`,
+      SQL: `SELECT NULL;`
+    },
+    hints: [
+      'Subarray sum between indices i and j equals `PrefixSum[j] - PrefixSum[i-1]`.',
+      'If `PrefixSum[j] - PrefixSum[i-1] = k`, then `PrefixSum[i-1] = PrefixSum[j] - k`.',
+      'Maintain a frequency map of previous prefix sums seen so far. Initialize `prefixMap[0] = 1` for subarrays starting at index 0.'
+    ],
+    explanation: 'By accumulating a prefix sum and querying how many times `current_sum - k` has appeared in a hash map, we determine all valid subarrays ending at the current index in O(1) time per element, achieving overall O(N) time and O(N) space.',
+    timeComplexity: 'O(N)',
+    spaceComplexity: 'O(N)',
+    testCases: [
+      { input: 'nums = [1,1,1], k = 2', expected: '2' },
+      { input: 'nums = [1,2,3], k = 3', expected: '2' }
     ]
   }
 ];
+

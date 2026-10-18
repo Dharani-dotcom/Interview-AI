@@ -1,7 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { ActiveTab, UserProfile, HistoricalReport, AIModel, NotificationItem, UserUsageState } from './types';
 import { initialUser, sampleHistory, sampleLeaderboard, sampleNotifications, defaultUserUsage } from './mockData';
-import { auth, testConnection, signOutUser, subscribeToUserUsage, consumeFeatureUsage, getUserProfileFromFirestore } from './lib/firebase';
+import {
+  auth,
+  testConnection,
+  signOutUser,
+  subscribeToUserUsage,
+  subscribeToUserProfile,
+  subscribeToUserInterviewReports,
+  saveInterviewReportToFirestore,
+  consumeFeatureUsage,
+  getUserProfileFromFirestore
+} from './lib/firebase';
+import { initClientCyberProtection } from './lib/cyberProtection';
 import { onAuthStateChanged } from 'firebase/auth';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
@@ -18,11 +29,15 @@ import { CodingInterview } from './components/CodingInterview';
 import { SystemDesignView } from './components/SystemDesignView';
 import { BehavioralInterview } from './components/BehavioralInterview';
 import { HRInterview } from './components/HRInterview';
+import { AICoach } from './components/AICoach';
+import { AptitudeReasoning } from './components/AptitudeReasoning';
 import { AnalyticsView } from './components/AnalyticsView';
 import { AdminPanel } from './components/AdminPanel';
 import { AuthModal } from './components/AuthModal';
 import { ExportReportModal } from './components/ExportReportModal';
 import { SubscriptionModal } from './components/SubscriptionModal';
+import { LegalComplianceModal, LegalTabType } from './components/LegalComplianceModal';
+import { CookieConsentBanner } from './components/CookieConsentBanner';
 import { ShieldCheck, Sparkles, Zap, AlertTriangle } from 'lucide-react';
 
 export function App() {
@@ -34,6 +49,8 @@ export function App() {
   const [notifications, setNotifications] = useState<NotificationItem[]>(sampleNotifications);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isSubscriptionOpen, setIsSubscriptionOpen] = useState(false);
+  const [isLegalModalOpen, setIsLegalModalOpen] = useState(false);
+  const [legalModalTab, setLegalModalTab] = useState<LegalTabType>('privacy');
   const [blockedFeatureName, setBlockedFeatureName] = useState<string>('');
   const [reportModalData, setReportModalData] = useState<any | null>(null);
   const [showAdminToast, setShowAdminToast] = useState(false);
@@ -43,42 +60,92 @@ export function App() {
     type: 'success',
   });
 
-  // Test Firestore connection on boot and listen to Auth state changes
+  // Test Firestore connection on boot, activate Cyber Protection, and listen to Auth state with strict per-user isolation
   useEffect(() => {
+    initClientCyberProtection();
     testConnection();
 
+    let unsubscribeProfile: (() => void) | null = null;
+    let unsubscribeReports: (() => void) | null = null;
+
     const unsubscribeAuth = onAuthStateChanged(auth, async (fbUser) => {
+      if (unsubscribeProfile) {
+        unsubscribeProfile();
+        unsubscribeProfile = null;
+      }
+      if (unsubscribeReports) {
+        unsubscribeReports();
+        unsubscribeReports = null;
+      }
+
       if (fbUser) {
         const firestoreProfile = await getUserProfileFromFirestore(fbUser.uid);
-        setUserProfile((prev) => ({
-          ...prev,
+        setUserProfile({
           id: fbUser.uid,
-          name: fbUser.displayName || firestoreProfile?.name || prev.name || 'Candidate',
-          email: fbUser.email || firestoreProfile?.email || prev.email || 'user@interviewai.pro',
-          avatar: fbUser.photoURL || firestoreProfile?.avatar || prev.avatar,
-          targetRole: firestoreProfile?.targetRole || prev.targetRole || 'Senior Full Stack / AI Engineer',
-          dailyStreak: firestoreProfile?.dailyStreak || prev.dailyStreak || 1,
-          overallScore: firestoreProfile?.overallScore || prev.overallScore || 88,
-          totalInterviews: firestoreProfile?.totalInterviews || prev.totalInterviews || 1,
+          name: fbUser.displayName || firestoreProfile?.name || 'Candidate',
+          email: fbUser.email || firestoreProfile?.email || '',
+          avatar:
+            fbUser.photoURL ||
+            firestoreProfile?.avatar ||
+            `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(fbUser.email || fbUser.uid)}`,
+          role: firestoreProfile?.role || 'Software Engineer',
+          targetRole: firestoreProfile?.targetRole || 'Senior Full Stack / AI Engineer',
+          dailyStreak: firestoreProfile?.dailyStreak || 1,
+          overallScore: firestoreProfile?.overallScore || 88,
+          totalInterviews: firestoreProfile?.totalInterviews || 1,
           isLoggedIn: true,
-        }));
+          isProUser: false,
+        });
+
+        // Real-time isolated listener for this exact user's profile doc
+        unsubscribeProfile = subscribeToUserProfile(fbUser.uid, (liveProfile) => {
+          if (liveProfile) {
+            setUserProfile((prev) => ({
+              ...prev,
+              id: fbUser.uid,
+              name: liveProfile.name || fbUser.displayName || prev.name,
+              email: liveProfile.email || fbUser.email || prev.email,
+              avatar: liveProfile.avatar || fbUser.photoURL || prev.avatar,
+              targetRole: liveProfile.targetRole || prev.targetRole,
+              dailyStreak: liveProfile.dailyStreak ?? prev.dailyStreak,
+              overallScore: liveProfile.overallScore ?? prev.overallScore,
+              totalInterviews: liveProfile.totalInterviews ?? prev.totalInterviews,
+              isLoggedIn: true,
+            }));
+          }
+        });
+
+        // Real-time isolated listener for this exact user's interview reports
+        unsubscribeReports = subscribeToUserInterviewReports(fbUser.uid, fbUser.email || '', (userReports) => {
+          if (userReports && userReports.length > 0) {
+            setHistory(userReports);
+          } else {
+            setHistory(sampleHistory);
+          }
+        });
       } else {
-        setUserProfile((prev) => ({
-          ...prev,
-          isLoggedIn: false,
-        }));
+        // Complete state reset so no other user or guest sees a previous user's profile
+        setUserProfile(initialUser);
+        setUserUsage(defaultUserUsage);
+        setHistory(sampleHistory);
       }
     });
 
-    return () => unsubscribeAuth();
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeProfile) unsubscribeProfile();
+      if (unsubscribeReports) unsubscribeReports();
+    };
   }, []);
 
-  // Listen in real-time to User's Usage and Subscription status in Firestore
+  // Listen in real-time to User's Usage and Subscription status in Firestore (isolated per user UID/email)
   useEffect(() => {
     const currentUid = auth.currentUser?.uid || userProfile.id;
-    const emailKey = userProfile.email || 'candidate@techlead.io';
-    const userId = currentUid || (userProfile.email ? userProfile.email.replace(/[^a-zA-Z0-9]/g, '_') : 'default-candidate');
-    
+    const emailKey = userProfile.email || '';
+    const userId =
+      currentUid ||
+      (emailKey ? emailKey.trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, '_') : 'guest_candidate');
+
     const unsubscribeUsage = subscribeToUserUsage(userId, emailKey, (usage) => {
       setUserUsage(usage);
     });
@@ -86,7 +153,7 @@ export function App() {
     return () => {
       if (unsubscribeUsage) unsubscribeUsage();
     };
-  }, [userProfile.email, userProfile.id]);
+  }, [userProfile.email, userProfile.id, userProfile.isLoggedIn]);
 
   // Global Ctrl + Shift + A shortcut handler for Admin View
   useEffect(() => {
@@ -126,7 +193,7 @@ export function App() {
       setIsSubscriptionOpen(true);
       setUsageToast({
         show: true,
-        msg: result.message || `Free trial limit reached (1/1 uses). Please unlock a monthly subscription plan (₹99 Starter for 10 uses/mo, ₹699 Medium for 30 uses/mo, or ₹1299 Unlimited/mo).`,
+        msg: result.message || `Free trial limit reached (2/2 uses). Unlock instant access with Medium Plan (₹299 for 45 uses) or Unlimited Plan (₹699) via Direct UPI (GPay / PhonePe).`,
         type: 'warn',
       });
       setTimeout(() => setUsageToast((p) => ({ ...p, show: false })), 5000);
@@ -144,16 +211,35 @@ export function App() {
     return true;
   };
 
-  const handleGenerateFinalReport = (data: any) => {
+  const handleGenerateFinalReport = async (data: any) => {
     setReportModalData(data);
+    const currentUid = auth.currentUser?.uid || userProfile.id;
+    if (currentUid) {
+      try {
+        await saveInterviewReportToFirestore({
+          userId: currentUid,
+          userEmail: auth.currentUser?.email || userProfile.email || '',
+          userName: userProfile.name,
+          type: data?.type || 'AI Chat Interview',
+          role: data?.role || userProfile.targetRole,
+          score: typeof data?.overallScore === 'number' ? data.overallScore : 88,
+          durationMinutes: data?.durationMinutes || 20,
+          summary: data?.summary || 'Completed real-time AI interview evaluation.'
+        });
+      } catch {
+        // non-blocking report save
+      }
+    }
   };
 
   const handleLogout = async () => {
     await signOutUser();
-    setUserProfile((prev) => ({
-      ...prev,
-      isLoggedIn: false,
-    }));
+    setUserProfile(initialUser);
+    setUserUsage(defaultUserUsage);
+    setHistory(sampleHistory);
+    if (activeTab === 'admin' || activeTab === 'admin-panel') {
+      setActiveTab('home');
+    }
   };
 
   return (
@@ -288,7 +374,9 @@ export function App() {
           />
         )}
 
-        {activeTab === 'general-chat' && <GeneralChat />}
+        {activeTab === 'general-chat' && (
+          <GeneralChat />
+        )}
 
         {activeTab === 'dashboard' && (
           <DashboardView
@@ -308,6 +396,10 @@ export function App() {
           <AIChatInterview 
             onGenerateFinalReport={handleGenerateFinalReport}
             onVerifyUsage={() => verifyAndConsumeUsage('AI Interview Chat')}
+            onOpenSubscription={() => {
+              setBlockedFeatureName('AI Prep & Learning');
+              setIsSubscriptionOpen(true);
+            }}
           />
         )}
 
@@ -370,15 +462,41 @@ export function App() {
           />
         )}
 
+        {activeTab === 'ai-coach' && (
+          <AICoach 
+            onVerifyUsage={() => verifyAndConsumeUsage('AI Agent Coach')}
+          />
+        )}
+
+        {activeTab === 'aptitude-reasoning' && (
+          <AptitudeReasoning 
+            onVerifyUsage={() => verifyAndConsumeUsage('Aptitude Assessment')}
+            userProfile={userProfile}
+            userUsage={userUsage}
+            onOpenSubscription={() => setIsSubscriptionOpen(true)}
+          />
+        )}
+
         {activeTab === 'analytics' && <AnalyticsView />}
 
-        {(activeTab === 'admin' || activeTab === 'admin-panel') && <AdminPanel />}
+        {(activeTab === 'admin' || activeTab === 'admin-panel') && (
+          <AdminPanel
+            userProfile={userProfile}
+            onOpenAuth={() => setIsAuthOpen(true)}
+          />
+        )}
       </main>
 
       {/* Footer */}
-      <Footer setActiveTab={setActiveTab} />
+      <Footer
+        setActiveTab={setActiveTab}
+        onOpenLegalModal={(tab) => {
+          setLegalModalTab(tab);
+          setIsLegalModalOpen(true);
+        }}
+      />
 
-      {/* Subscription Paywall Modal (1 Free Use, ₹499 / ₹1299 / ₹2000 with UPI QR Code) */}
+      {/* Subscription Paywall Modal (1 Free Use, ₹60 / ₹299 / ₹699 with Razorpay India & UPI QR Code) */}
       <SubscriptionModal
         isOpen={isSubscriptionOpen}
         onClose={() => setIsSubscriptionOpen(false)}
@@ -388,7 +506,7 @@ export function App() {
         onSuccess={() => {
           setUsageToast({
             show: true,
-            msg: `Subscription payment registered in real-time Firestore database! Your quota has been refreshed.`,
+            msg: `Subscription payment registered in real-time! Your quota has been refreshed.`,
             type: 'success',
           });
           setTimeout(() => setUsageToast((p) => ({ ...p, show: false })), 6000);
@@ -427,6 +545,21 @@ export function App() {
           onClose={() => setReportModalData(null)}
         />
       )}
+
+      {/* Legal, Privacy Policy, Terms & Conditions, and Cookie Preferences Modal */}
+      <LegalComplianceModal
+        isOpen={isLegalModalOpen}
+        onClose={() => setIsLegalModalOpen(false)}
+        initialTab={legalModalTab}
+      />
+
+      {/* GDPR & India DPDP Act 2023 Cookie Consent Banner */}
+      <CookieConsentBanner
+        onOpenLegalModal={(tab) => {
+          setLegalModalTab(tab);
+          setIsLegalModalOpen(true);
+        }}
+      />
     </div>
   );
 }

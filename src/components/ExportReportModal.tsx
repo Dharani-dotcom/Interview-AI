@@ -26,7 +26,7 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({ data, onCl
   };
 
   const handleDownloadText = () => {
-    const reportText = `INTERVIEW AI PRO EVALUATION REPORT
+    const reportText = `VETTINGLY EVALUATION REPORT
 Role: ${data?.role || 'Software Engineer'}
 Type: ${data?.type || 'Technical'}
 Date: ${new Date().toLocaleDateString()}
@@ -46,7 +46,7 @@ AREAS FOR IMPROVEMENT:
     const element = document.createElement('a');
     const file = new Blob([reportText], { type: 'text/plain' });
     element.href = URL.createObjectURL(file);
-    element.download = `InterviewAI_Report_${Date.now()}.txt`;
+    element.download = `Vettingly_Report_${Date.now()}.txt`;
     document.body.appendChild(element);
     element.click();
   };

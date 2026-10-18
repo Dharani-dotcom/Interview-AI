@@ -1,6 +1,7 @@
 export type ActiveTab =
   | 'home'
   | 'dashboard'
+  | 'ai-coach'
   | 'general-chat'
   | 'chat-interview'
   | 'voice-interview'
@@ -14,6 +15,7 @@ export type ActiveTab =
   | 'hr-interview'
   | 'analytics'
   | 'certificate'
+  | 'aptitude-reasoning'
   | 'admin-panel';
 
 export interface VoiceTutorLesson {
@@ -78,6 +80,12 @@ export interface VoiceAnalysisResult {
   detectedFillerWords: string[];
   feedback: string;
   improvedAnswer: string;
+  verbalResponse?: string;
+  strengths?: string[];
+  weaknesses?: string[];
+  strongSummary?: string;
+  weakSummary?: string;
+  keyMissingConcepts?: string[];
 }
 
 export interface VideoAnalysisResult {
@@ -92,6 +100,11 @@ export interface VideoAnalysisResult {
   followUpQuestion?: string;
   suggestions: string[];
   summary: string;
+  strengths?: string[];
+  weaknesses?: string[];
+  strongSummary?: string;
+  weakSummary?: string;
+  keyMissingConcepts?: string[];
 }
 
 export interface ResumeAnalysisResult {
@@ -129,6 +142,10 @@ export interface CodingProblem {
   timeComplexity: string;
   spaceComplexity: string;
   testCases: { input: string; expected: string }[];
+  company?: string;
+  companyTags?: string[];
+  pyqYear?: string;
+  examSource?: string;
 }
 
 export interface CodingMentorMessage {
@@ -200,7 +217,7 @@ export interface WebinarRegistration {
   registeredAt: string;
 }
 
-export type PlanId = 'free' | 'tier-99' | 'tier-699' | 'tier-1299' | 'tier-499' | 'tier-2000';
+export type PlanId = 'free' | 'tier-60' | 'tier-299' | 'tier-499' | 'tier-99' | 'tier-699' | 'tier-1299' | 'tier-2000';
 
 export interface PricingPlan {
   id: PlanId;
@@ -219,7 +236,7 @@ export interface UserUsageState {
   userEmail?: string;
   planId: PlanId;
   planName: string;
-  totalAllowedUses: number; // 1 for free, 10 for 99, 30 for 699, -1 for 1299
+  totalAllowedUses: number; // 2 for free trial, 15 for tier-60, 45 for tier-299, -1 for unlimited
   usedCount: number;
   remainingUses: number;
   isUnlimited: boolean;
@@ -243,4 +260,52 @@ export interface SubscriptionPaymentRecord {
   createdAt: string;
   verifiedAt?: string;
 }
+
+// Student Mock Test Score Record for Admin Panel
+export interface MockTestScoreRecord {
+  id?: string;
+  studentName: string;
+  studentEmail: string;
+  company: string;
+  score: number; // e.g. 42
+  totalMarks: number; // e.g. 50
+  accuracy: number; // percentage e.g. 84
+  sectionalScores: {
+    quant: { correct: number; total: number };
+    logic: { correct: number; total: number };
+    verbal: { correct: number; total: number };
+    coding: { passed: boolean; score: number };
+  };
+  timeSpentSeconds: number;
+  submittedAt: string;
+  passed: boolean;
+  cutoffScore: number;
+}
+
+// Topic-Wise Aptitude Module
+export interface TopicLearnConcept {
+  heading: string;
+  content: string;
+  keyFormulas?: string[];
+  solvedExample?: {
+    question: string;
+    steps: string[];
+    answer: string;
+  };
+}
+
+export interface TopicAptitudeModule {
+  id: string;
+  topicNumber: number;
+  title: string;
+  difficulty: 'Easy to Medium' | 'Medium to Hard' | 'Difficult to Hard';
+  overview: string;
+  learnTitle: string;
+  practiceTitle: string;
+  concepts: TopicLearnConcept[];
+  quickFormulas: string[];
+  practiceQuestionCount?: number;
+  practiceQuestions?: any[];
+}
+
 

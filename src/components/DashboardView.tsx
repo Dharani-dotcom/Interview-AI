@@ -1,5 +1,5 @@
 import React from 'react';
-import { UserProfile, HistoricalReport, ActiveTab } from '../types';
+import { UserProfile, HistoricalReport, ActiveTab, UserUsageState } from '../types';
 import {
   Trophy,
   Flame,
@@ -14,7 +14,9 @@ import {
   Calendar,
   Zap,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  ShieldCheck,
+  Lock
 } from 'lucide-react';
 
 interface DashboardViewProps {
@@ -22,6 +24,8 @@ interface DashboardViewProps {
   history: HistoricalReport[];
   leaderboard: { rank: number; name: string; score: number; role: string; streak: number }[];
   setActiveTab: (tab: ActiveTab) => void;
+  userUsage?: UserUsageState;
+  onOpenSubscription?: () => void;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
@@ -29,6 +33,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   history,
   leaderboard,
   setActiveTab,
+  userUsage,
+  onOpenSubscription,
 }) => {
   const skillProgress = [
     { skill: 'System Design Architecture', score: 92, color: 'from-cyan-500 to-blue-600' },
@@ -55,7 +61,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* Header Banner */}
       <div className="rounded-2xl glass-card border-slate-800 p-6 sm:p-8 relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div className="space-y-2 z-10">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 text-xs font-bold">
               Target Role: {user.targetRole}
             </span>
@@ -63,16 +69,31 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <Flame className="w-3.5 h-3.5 fill-purple-400" />
               {user.dailyStreak} Day Streak
             </span>
+            <span className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-xs font-bold flex items-center gap-1.5">
+              <Lock className="w-3 h-3" />
+              Private Isolated Profile ({user.email || 'Personal Session'})
+            </span>
           </div>
           <h1 className="text-3xl font-extrabold text-white">
             Welcome back, <span className="gradient-text">{user.name}</span>
           </h1>
           <p className="text-xs text-slate-400 max-w-xl">
-            You are performing in the top 10% of candidates for {user.targetRole}. Your readiness score is currently high.
+            Your profile, resume scans, interview reports, and subscription quota ({userUsage?.planName || 'Free Trial'}) are strictly isolated to your account via zero-trust access controls &amp; SWR edge caching. Other users cannot view your private profile or payment records.
           </p>
         </div>
 
-        <div className="flex items-center gap-3 z-10">
+        <div className="flex items-center gap-3 z-10 flex-wrap">
+          {userUsage && (
+            <button
+              onClick={onOpenSubscription}
+              className="px-4 py-2.5 rounded-xl font-bold text-xs bg-slate-900/90 hover:bg-slate-800 text-emerald-300 border border-emerald-500/30 flex items-center gap-2 cursor-pointer"
+            >
+              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              <span>
+                {userUsage.planName}: {userUsage.isUnlimited ? 'Unlimited Uses' : `${userUsage.remainingUses} Left`}
+              </span>
+            </button>
+          )}
           <button
             onClick={() => setActiveTab('chat-interview')}
             className="gradient-btn px-5 py-2.5 rounded-xl font-bold text-xs text-white shadow-lg shadow-cyan-500/20 flex items-center gap-2"

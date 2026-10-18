@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ActiveTab, WebinarItem, UserUsageState, UserProfile } from '../types';
 import { pricingPlans } from '../mockData';
 import { subscribeToWebinars, saveWebinarRegistrationToFirestore } from '../lib/firebase';
+import { launchUpiPaymentApp, getUniversalUpiUri } from '../lib/upiPayment';
 import {
   Sparkles,
   MessageSquare,
@@ -36,8 +37,11 @@ import {
   ShieldCheck,
   Smartphone,
   Lock,
-  CheckCheck
+  CheckCheck,
+  Brain,
+  GraduationCap
 } from 'lucide-react';
+import { InterviewProductShowcase } from './InterviewProductShowcase';
 
 interface HeroHomeProps {
   setActiveTab: (tab: ActiveTab) => void;
@@ -58,8 +62,6 @@ export const HeroHome: React.FC<HeroHomeProps> = ({
   const [webinars, setWebinars] = useState<WebinarItem[]>([]);
   const [loadingWebinars, setLoadingWebinars] = useState(false);
   const [clickedModuleId, setClickedModuleId] = useState<string | null>(null);
-  const [activePartnerFilter, setActivePartnerFilter] = useState<string>('All');
-  const [clickedPartner, setClickedPartner] = useState<string | null>(null);
 
   // Candidate Registration Modal State
   const [selectedWebinar, setSelectedWebinar] = useState<WebinarItem | null>(null);
@@ -132,7 +134,7 @@ export const HeroHome: React.FC<HeroHomeProps> = ({
         userRole: regRole.trim(),
         utr: utrVal.trim() || 'UPI_QR_SCANNED',
         amountPaid: amount || selectedWebinar.price || '₹100',
-        paymentRecipient: 'priyadha1988@oksbi (priyadha 1988)',
+        paymentRecipient: 'Vettingly Direct UPI (Protected Merchant)',
         registeredAt: new Date().toISOString()
       };
 
@@ -161,12 +163,28 @@ export const HeroHome: React.FC<HeroHomeProps> = ({
   };
 
   const copyUpiId = () => {
-    navigator.clipboard.writeText('priyadha1988@oksbi');
+    launchUpiPaymentApp('gpay', selectedWebinar?.price?.replace(/[^0-9]/g, '') || '100', 'Vettingly Webinar Registration');
     setCopiedUpi(true);
     setTimeout(() => setCopiedUpi(false), 2500);
   };
 
   const features = [
+    {
+      id: 'aptitude-reasoning',
+      tab: 'aptitude-reasoning',
+      title: 'Aptitude & Reasoning Arena',
+      desc: 'Company-specific Quantitative Aptitude, Logical Reasoning, Verbal Ability & Core ECE/EEE questions from Google, Microsoft, TCS, Infosys & Honeywell.',
+      icon: <GraduationCap className="w-5 h-5 text-amber-500" />,
+      tag: 'Company Tests'
+    },
+    {
+      id: 'ai-coach',
+      tab: 'ai-coach',
+      title: 'AI Coach: Agent Masterclass',
+      desc: 'Interactive video-style animated flowcharts teaching Autonomous AI Agents, ReAct loops, multi-agent supervisors & memory grounding with live code and AI speech.',
+      icon: <Brain className="w-5 h-5 text-sky-600" />,
+      tag: 'New Flowchart Video'
+    },
     {
       id: 'voice-tutor',
       tab: 'voice-tutor',
@@ -351,7 +369,7 @@ export const HeroHome: React.FC<HeroHomeProps> = ({
                   className="w-full sm:w-auto gradient-btn px-8 py-3.5 rounded-xl font-bold text-xs text-white shadow-md flex items-center justify-center gap-2 group cursor-pointer"
                 >
                   <Sparkles className="w-4 h-4 text-amber-300" />
-                  <span>Sign In / Sign Up (1 Free Practice Included)</span>
+                  <span>Sign In / Sign Up (2 Free Practices Included)</span>
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </button>
 
@@ -550,7 +568,7 @@ export const HeroHome: React.FC<HeroHomeProps> = ({
                   setClickedModuleId(item.id);
                   setTimeout(() => {
                     setClickedModuleId(null);
-                    if (!user?.isLoggedIn && item.id !== 'general-chat') {
+                    if (!user?.isLoggedIn && item.id !== 'general-chat' && item.id !== 'ai-coach' && item.id !== 'aptitude-reasoning') {
                       onOpenAuth();
                     } else {
                       setActiveTab(item.id as ActiveTab);
@@ -584,11 +602,11 @@ export const HeroHome: React.FC<HeroHomeProps> = ({
 
                 <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-sky-600 group-hover:translate-x-1.5 transition-transform">
                   <span className="flex items-center gap-1.5">
-                    {item.id === 'general-chat'
-                      ? 'Open Free Chat'
+                    {item.id === 'general-chat' || item.id === 'ai-coach' || item.id === 'aptitude-reasoning'
+                      ? 'Open Free Arena'
                       : user?.isLoggedIn
                       ? 'Open Module'
-                      : 'Sign In to Unlock (1 Free Use)'}
+                      : 'Sign In to Unlock (2 Free Uses)'}
                   </span>
                   <ArrowRight className="w-4 h-4" />
                 </div>
@@ -599,153 +617,9 @@ export const HeroHome: React.FC<HeroHomeProps> = ({
       </section>
 
       {/* ============================================================ */}
-      {/* 850+ HIRING PARTNERS SHOWCASE SECTION (REVIVED & DEDICATED)  */}
+      {/* APPSMITH-STYLE INTERACTIVE PRODUCT SUITE SHOWCASE            */}
       {/* ============================================================ */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
-        <div className="p-8 sm:p-10 rounded-3xl bg-gradient-to-b from-white via-slate-50 to-sky-50/40 border border-sky-200 shadow-xl space-y-8 relative overflow-hidden">
-          
-          {/* Header & Jumping Stat Badges */}
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-slate-200">
-            <div className="space-y-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold border border-emerald-300">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                <span>850+ Verified Global Hiring Partners</span>
-              </div>
-              <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
-                <span>Top Companies Hiring Our Candidates</span>
-                <span className="text-sm font-semibold px-3 py-1 rounded-full bg-sky-500 text-white animate-pulse">
-                  Direct Referrals
-                </span>
-              </h2>
-              <p className="text-xs text-slate-600 max-w-2xl leading-relaxed">
-                Over <strong>850+ tier-1 product companies, startups, and tech giants</strong> actively interview and hire candidates prepared on our AI platform.
-              </p>
-            </div>
-
-            {/* Jumping Hiring Stats Bar */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-              <div className="p-3.5 rounded-2xl bg-white border border-sky-200 shadow-sm animate-jump">
-                <p className="text-2xl font-black text-sky-600">850+</p>
-                <p className="text-[10px] font-bold text-slate-600">Partner Companies</p>
-              </div>
-              <div className="p-3.5 rounded-2xl bg-white border border-emerald-200 shadow-sm animate-jump-delayed-1">
-                <p className="text-2xl font-black text-emerald-600">94.8%</p>
-                <p className="text-[10px] font-bold text-slate-600">Hire Conversion</p>
-              </div>
-              <div className="p-3.5 rounded-2xl bg-white border border-indigo-200 shadow-sm animate-jump-delayed-2">
-                <p className="text-2xl font-black text-indigo-600">14.2K+</p>
-                <p className="text-[10px] font-bold text-slate-600">Offers Accepted</p>
-              </div>
-              <div className="p-3.5 rounded-2xl bg-white border border-amber-200 shadow-sm animate-jump-delayed-3">
-                <p className="text-2xl font-black text-amber-600">$185k</p>
-                <p className="text-[10px] font-bold text-slate-600">Avg Tech Offer</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Hiring Partner Logo Marquee Ribbon (Left-to-Right Moving) */}
-          <div className="space-y-4">
-            <p className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between">
-              <span>🚀 Tier-1 Tech Giants & Global Hiring Ecosystem</span>
-              <span className="text-[11px] text-slate-500 font-normal">Hover to pause • Click company to jump</span>
-            </p>
-
-            {/* Row 1: Left to Right Marquee */}
-            <div className="py-2 overflow-hidden bg-white/80 rounded-2xl border border-slate-200 shadow-2xs relative">
-              <div className="animate-marquee-ltr flex items-center gap-4 text-xs font-bold text-slate-800">
-                {[
-                  { name: 'Google', role: 'SDE II / AI Research', color: 'border-blue-300 bg-blue-50 text-blue-800', icon: '🔵' },
-                  { name: 'Microsoft', role: 'Full Stack & Azure', color: 'border-sky-300 bg-sky-50 text-sky-800', icon: '🟦' },
-                  { name: 'Amazon', role: 'AWS & SDE III', color: 'border-amber-300 bg-amber-50 text-amber-900', icon: '🟧' },
-                  { name: 'Meta', role: 'ML Infra & React', color: 'border-indigo-300 bg-indigo-50 text-indigo-800', icon: '🌐' },
-                  { name: 'Apple', role: 'iOS & Systems Core', color: 'border-slate-300 bg-slate-100 text-slate-900', icon: '🍎' },
-                  { name: 'Netflix', role: 'Distributed Systems', color: 'border-rose-300 bg-rose-50 text-rose-800', icon: '🍿' },
-                  { name: 'Nvidia', role: 'CUDA & LLM Hardware', color: 'border-emerald-300 bg-emerald-50 text-emerald-800', icon: '🟢' },
-                  { name: 'Uber', role: 'Real-time Algorithms', color: 'border-slate-400 bg-slate-100 text-slate-800', icon: '🚗' },
-                  { name: 'Stripe', role: 'FinTech Platform', color: 'border-purple-300 bg-purple-50 text-purple-800', icon: '💳' },
-                  { name: 'Airbnb', role: 'Frontend & Growth', color: 'border-rose-300 bg-rose-50 text-rose-700', icon: '🏠' },
-                  { name: 'Salesforce', role: 'Cloud Architect', color: 'border-cyan-300 bg-cyan-50 text-cyan-800', icon: '☁️' },
-                  { name: 'Adobe', role: 'Creative Cloud & AI', color: 'border-red-300 bg-red-50 text-red-800', icon: '🎨' },
-                  // Duplicated for infinite seamless marquee loop
-                  { name: 'Google', role: 'SDE II / AI Research', color: 'border-blue-300 bg-blue-50 text-blue-800', icon: '🔵' },
-                  { name: 'Microsoft', role: 'Full Stack & Azure', color: 'border-sky-300 bg-sky-50 text-sky-800', icon: '🟦' },
-                  { name: 'Amazon', role: 'AWS & SDE III', color: 'border-amber-300 bg-amber-50 text-amber-900', icon: '🟧' },
-                  { name: 'Meta', role: 'ML Infra & React', color: 'border-indigo-300 bg-indigo-50 text-indigo-800', icon: '🌐' },
-                  { name: 'Apple', role: 'iOS & Systems Core', color: 'border-slate-300 bg-slate-100 text-slate-900', icon: '🍎' },
-                  { name: 'Netflix', role: 'Distributed Systems', color: 'border-rose-300 bg-rose-50 text-rose-800', icon: '🍿' },
-                  { name: 'Nvidia', role: 'CUDA & LLM Hardware', color: 'border-emerald-300 bg-emerald-50 text-emerald-800', icon: '🟢' },
-                  { name: 'Uber', role: 'Real-time Algorithms', color: 'border-slate-400 bg-slate-100 text-slate-800', icon: '🚗' },
-                  { name: 'Stripe', role: 'FinTech Platform', color: 'border-purple-300 bg-purple-50 text-purple-800', icon: '💳' },
-                  { name: 'Airbnb', role: 'Frontend & Growth', color: 'border-rose-300 bg-rose-50 text-rose-700', icon: '🏠' },
-                  { name: 'Salesforce', role: 'Cloud Architect', color: 'border-cyan-300 bg-cyan-50 text-cyan-800', icon: '☁️' },
-                  { name: 'Adobe', role: 'Creative Cloud & AI', color: 'border-red-300 bg-red-50 text-red-800', icon: '🎨' },
-                ].map((co, idx) => (
-                  <button
-                    key={`${co.name}-${idx}`}
-                    type="button"
-                    onClick={() => {
-                      setClickedPartner(co.name);
-                      setTimeout(() => setClickedPartner(null), 500);
-                    }}
-                    className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border ${co.color} transition-all duration-300 transform shadow-xs ${
-                      clickedPartner === co.name ? 'animate-click-jump scale-110 ring-2 ring-sky-500' : 'hover:scale-105 active:scale-95'
-                    }`}
-                  >
-                    <span>{co.icon}</span>
-                    <span className="font-extrabold">{co.name}</span>
-                    <span className="text-[10px] opacity-75 font-medium">({co.role})</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Row 2: Right to Left Marquee */}
-            <div className="py-2 overflow-hidden bg-white/80 rounded-2xl border border-slate-200 shadow-2xs relative">
-              <div className="animate-marquee-rtl flex items-center gap-4 text-xs font-bold text-slate-800">
-                {[
-                  { name: 'Goldman Sachs', role: 'Quant & Java Core', color: 'border-blue-300 bg-blue-50 text-blue-900', icon: '🏦' },
-                  { name: 'JPMorgan Chase', role: 'FinTech Architect', color: 'border-indigo-300 bg-indigo-50 text-indigo-900', icon: '🏛️' },
-                  { name: 'Spotify', role: 'Backend Data Eng', color: 'border-emerald-300 bg-emerald-50 text-emerald-800', icon: '🎧' },
-                  { name: 'Oracle', role: 'Database & Cloud', color: 'border-rose-300 bg-rose-50 text-rose-800', icon: '💾' },
-                  { name: 'Cisco', role: 'Security & Networks', color: 'border-teal-300 bg-teal-50 text-teal-800', icon: '📡' },
-                  { name: 'Atlassian', role: 'Jira & DevOps', color: 'border-sky-300 bg-sky-50 text-sky-800', icon: '⚡' },
-                  { name: 'ByteDance', role: 'Recommendation AI', color: 'border-cyan-300 bg-cyan-50 text-cyan-900', icon: '🎵' },
-                  { name: 'Walmart Labs', role: 'Retail Scale E-comm', color: 'border-amber-300 bg-amber-50 text-amber-800', icon: '🛒' },
-                  { name: 'PayPal', role: 'Payment Gateway', color: 'border-blue-300 bg-blue-50 text-blue-800', icon: '💰' },
-                  { name: 'Swiggy & Zomato', role: 'Hyperlocal Logistics', color: 'border-orange-300 bg-orange-50 text-orange-800', icon: '🛵' },
-                  // Duplicated for infinite seamless marquee loop
-                  { name: 'Goldman Sachs', role: 'Quant & Java Core', color: 'border-blue-300 bg-blue-50 text-blue-900', icon: '🏦' },
-                  { name: 'JPMorgan Chase', role: 'FinTech Architect', color: 'border-indigo-300 bg-indigo-50 text-indigo-900', icon: '🏛️' },
-                  { name: 'Spotify', role: 'Backend Data Eng', color: 'border-emerald-300 bg-emerald-50 text-emerald-800', icon: '🎧' },
-                  { name: 'Oracle', role: 'Database & Cloud', color: 'border-rose-300 bg-rose-50 text-rose-800', icon: '💾' },
-                  { name: 'Cisco', role: 'Security & Networks', color: 'border-teal-300 bg-teal-50 text-teal-800', icon: '📡' },
-                  { name: 'Atlassian', role: 'Jira & DevOps', color: 'border-sky-300 bg-sky-50 text-sky-800', icon: '⚡' },
-                  { name: 'ByteDance', role: 'Recommendation AI', color: 'border-cyan-300 bg-cyan-50 text-cyan-900', icon: '🎵' },
-                  { name: 'Walmart Labs', role: 'Retail Scale E-comm', color: 'border-amber-300 bg-amber-50 text-amber-800', icon: '🛒' },
-                  { name: 'PayPal', role: 'Payment Gateway', color: 'border-blue-300 bg-blue-50 text-blue-800', icon: '💰' },
-                  { name: 'Swiggy & Zomato', role: 'Hyperlocal Logistics', color: 'border-orange-300 bg-orange-50 text-orange-800', icon: '🛵' },
-                ].map((co, idx) => (
-                  <button
-                    key={`${co.name}-${idx}`}
-                    type="button"
-                    onClick={() => {
-                      setClickedPartner(co.name);
-                      setTimeout(() => setClickedPartner(null), 500);
-                    }}
-                    className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border ${co.color} transition-all duration-300 transform shadow-xs ${
-                      clickedPartner === co.name ? 'animate-click-jump scale-110 ring-2 ring-sky-500' : 'hover:scale-105 active:scale-95'
-                    }`}
-                  >
-                    <span>{co.icon}</span>
-                    <span className="font-extrabold">{co.name}</span>
-                    <span className="text-[10px] opacity-75 font-medium">({co.role})</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <InterviewProductShowcase setActiveTab={setActiveTab} />
 
       {/* ============================================================ */}
       {/* 4. SUBSCRIPTION PLANS & UPI QR PRICING TIERS SECTION         */}
@@ -760,14 +634,14 @@ export const HeroHome: React.FC<HeroHomeProps> = ({
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-[11px] font-bold border border-amber-500/30 mb-3">
                 <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                <span>Simple Transparent Pricing • Real-time UPI QR Activation</span>
+                <span>Direct UPI Payment (GPay / PhonePe) • Medium Plan ₹299 & Unlimited ₹699</span>
               </div>
               <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                Unlock Full AI Interview & Coding Access
+                Unlock Full AI Interview, Company Mock Tests & Coding Access
               </h2>
 
               <p className="text-xs text-slate-300 mt-1 max-w-2xl">
-                Start with 1 free trial session across any module. Upgrade anytime to access coding sandboxes, mock voice/video interviews, ATS resume diagnostics, and system design evaluations.
+                Start with 2 free trial sessions across any module. Upgrade anytime with Medium Plan (₹299 for 45 uses) or Unlimited Plan (₹699) via Direct UPI (Google Pay, PhonePe, Paytm).
               </p>
             </div>
 
@@ -861,14 +735,14 @@ export const HeroHome: React.FC<HeroHomeProps> = ({
             <div className="flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
               <span>
-                All payments are verified in the real-time Firestore database using UPI ID: <strong className="text-amber-300 font-mono">priyadha1988@oksbi</strong>.
+                All payments are processed directly via <strong className="text-amber-300">Google Pay (GPay), PhonePe, Paytm &amp; BHIM UPI</strong> with instant quota activation.
               </span>
             </div>
             <button
               onClick={onOpenSubscription}
               className="text-sky-400 hover:text-sky-300 font-bold underline shrink-0 cursor-pointer"
             >
-              Open Payment Scanner & UTR Form →
+              Pay with GPay / PhonePe &amp; Unlock Now →
             </button>
           </div>
         </div>
@@ -1116,71 +990,87 @@ export const HeroHome: React.FC<HeroHomeProps> = ({
                     </span>
                   </div>
 
-                  {/* Google Pay / UPI Card matching user's exact uploaded image */}
+                  {/* Google Pay / PhonePe / Paytm Direct UPI Card (Merchant Number Hidden) */}
                   <div className="bg-slate-950 border border-slate-800 rounded-3xl p-5 shadow-inner space-y-4 relative overflow-hidden">
-                    {/* Top profile avatar */}
-                    <div className="flex flex-col items-center space-y-1.5">
-                      <div className="w-10 h-10 rounded-full bg-slate-700 text-white font-bold flex items-center justify-center text-sm shadow-md border border-slate-600">
-                        p
+                    <div className="flex flex-col items-center space-y-1">
+                      <div className="w-10 h-10 rounded-full bg-sky-500/20 text-sky-400 font-bold flex items-center justify-center text-sm shadow-md border border-sky-500/30">
+                        V
                       </div>
                       <h4 className="text-sm font-bold text-slate-100 tracking-wide">
-                        priyadha 1988
+                        Vettingly Verified Merchant
                       </h4>
+                      <span className="text-[10px] text-emerald-400 font-medium">
+                        Merchant Number Privacy Protected
+                      </span>
                     </div>
 
-                    {/* QR Code Container with Center Logo & White Card background */}
-                    <div className="bg-white rounded-2xl p-4 shadow-xl inline-block mx-auto relative group">
-                      <img
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(
-                          `upi://pay?pa=priyadha1988@oksbi&pn=priyadha%201988&am=${
-                            selectedWebinar.price?.replace(/[^0-9]/g, '') || '100'
-                          }&cu=INR&tn=Webinar%20Registration`
-                        )}`}
-                        alt="Scan to pay with any UPI app"
-                        className="w-52 h-52 object-contain mx-auto rounded"
-                      />
-                      {/* Center GPay style badge */}
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <div className="w-9 h-9 bg-white rounded-full shadow-lg border border-slate-200 flex items-center justify-center p-1">
-                          <span className="text-[10px] font-extrabold tracking-tighter text-blue-600">GPay</span>
-                        </div>
-                      </div>
-                    </div>
+                    {/* 1-Click Direct UPI App Launchers */}
+                    <div className="grid grid-cols-1 gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          launchUpiPaymentApp(
+                            'gpay',
+                            selectedWebinar.price?.replace(/[^0-9]/g, '') || '100',
+                            `Vettingly Webinar: ${selectedWebinar.name}`
+                          )
+                        }
+                        className="w-full py-2.5 px-4 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-extrabold flex items-center justify-center gap-2 shadow-md transition-colors cursor-pointer"
+                      >
+                        <Smartphone className="w-4 h-4" />
+                        <span>Pay {selectedWebinar.price || '₹100'} with Google Pay (GPay)</span>
+                      </button>
 
-                    {/* UPI ID Info & Copy Button */}
-                    <div className="space-y-2 pt-1">
-                      <div className="flex items-center justify-center gap-2">
-                        <span className="text-xs font-mono font-semibold text-slate-300 bg-slate-900/90 px-3 py-1 rounded-xl border border-slate-800">
-                          UPI ID: <strong className="text-amber-300">priyadha1988@oksbi</strong>
-                        </span>
+                      <div className="grid grid-cols-2 gap-2">
                         <button
-                          onClick={copyUpiId}
-                          className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors text-xs flex items-center gap-1"
-                          title="Copy UPI ID"
+                          type="button"
+                          onClick={() =>
+                            launchUpiPaymentApp(
+                              'phonepe',
+                              selectedWebinar.price?.replace(/[^0-9]/g, '') || '100',
+                              `Vettingly Webinar: ${selectedWebinar.name}`
+                            )
+                          }
+                          className="py-2 px-3 rounded-xl bg-purple-600/30 hover:bg-purple-600/40 border border-purple-500/40 text-purple-200 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                         >
-                          {copiedUpi ? (
-                            <Check className="w-3.5 h-3.5 text-emerald-400" />
-                          ) : (
-                            <Copy className="w-3.5 h-3.5" />
-                          )}
+                          <Smartphone className="w-3.5 h-3.5" />
+                          <span>PhonePe</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            launchUpiPaymentApp(
+                              'paytm',
+                              selectedWebinar.price?.replace(/[^0-9]/g, '') || '100',
+                              `Vettingly Webinar: ${selectedWebinar.name}`
+                            )
+                          }
+                          className="py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-amber-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                        >
+                          <Smartphone className="w-3.5 h-3.5" />
+                          <span>Paytm / UPI</span>
                         </button>
                       </div>
-
-                      <p className="text-[11px] text-slate-400 font-medium">
-                        Scan to pay with any UPI app (GPay, PhonePe, Paytm, BHIM)
-                      </p>
                     </div>
 
-                    {/* Direct mobile deep link */}
-                    <a
-                      href={`upi://pay?pa=priyadha1988@oksbi&pn=priyadha%201988&am=${
-                        selectedWebinar.price?.replace(/[^0-9]/g, '') || '100'
-                      }&cu=INR&tn=Webinar%20Registration`}
-                      className="w-full py-2 px-3 rounded-xl bg-slate-900 border border-slate-800 hover:border-amber-500/40 text-amber-300 text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors"
-                    >
-                      <Smartphone className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Open UPI App on Phone (Pay {selectedWebinar.price || '₹100'})</span>
-                    </a>
+                    {/* QR Code Container */}
+                    <div className="bg-white rounded-2xl p-3.5 shadow-xl inline-block mx-auto relative group">
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
+                          getUniversalUpiUri(
+                            selectedWebinar.price?.replace(/[^0-9]/g, '') || '100',
+                            'Vettingly Webinar Registration'
+                          )
+                        )}`}
+                        alt="Scan to pay with any UPI app"
+                        className="w-44 h-44 object-contain mx-auto rounded"
+                      />
+                    </div>
+
+                    <p className="text-[11px] text-slate-400 font-medium">
+                      Click Google Pay / PhonePe above or scan QR with any UPI app
+                    </p>
                   </div>
 
                   {/* Transaction ID / UTR (Required) */}
@@ -1198,7 +1088,7 @@ export const HeroHome: React.FC<HeroHomeProps> = ({
                       className="w-full px-3.5 py-2.5 rounded-xl glass-input text-white text-xs placeholder:text-slate-500 font-mono focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
                     />
                     <p className="text-[10px] text-slate-400 leading-tight">
-                      * Open your UPI app (GPay/PhonePe/Paytm), complete payment to <span className="text-slate-200 font-mono">priyadha1988@oksbi</span>, then copy & paste the 12-digit Transaction/UTR No above.
+                      * Complete your payment in GPay, PhonePe, or Paytm, then paste the 12-digit Transaction/UTR No above.
                     </p>
                   </div>
 
@@ -1245,7 +1135,7 @@ export const HeroHome: React.FC<HeroHomeProps> = ({
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-400">Paid To:</span>
-                        <span className="text-slate-200">priyadha1988@oksbi</span>
+                        <span className="text-slate-200">Vettingly Verified Merchant (UPI)</span>
                       </div>
                     </div>
                   </div>

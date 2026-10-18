@@ -3,57 +3,57 @@ import { codingProblemsData } from './codingProblemsData';
 
 export const pricingPlans: PricingPlan[] = [
   {
-    id: 'tier-99',
-    name: 'Starter Plan',
-    price: 99,
+    id: 'tier-60',
+    name: 'Starter Pack',
+    price: 60,
     period: '/ month',
-    allowedUses: 10,
+    allowedUses: 15,
     features: [
-      '10 Full Uses per Month',
-      'All Features: Coding, Mock Interview & Resume Analyzer',
-      'Real-time Code Test Execution & AI Debugger',
-      'AI Voice & Video Interview with Real-time Scoring',
+      '15 Full Uses per Month',
+      'All Modules: Coding Sandbox, Mock Interview & Resume ATS',
+      'Real-time Code Test Execution & Socratic AI Debugger',
+      'AI Voice & Video Interview with Real-time STAR Scoring',
       'ATS Resume Optimization & Keyword Matcher',
-      'Instant UPI QR Activation'
+      'Instant Direct UPI (GPay / PhonePe) Activation'
     ],
-    badge: 'Starter • 10 Uses / Mo',
+    badge: 'Starter Pack • ₹60',
     color: 'emerald'
   },
   {
-    id: 'tier-699',
+    id: 'tier-299',
     name: 'Medium Plan',
-    price: 699,
+    price: 299,
     period: '/ month',
-    allowedUses: 30,
+    allowedUses: 45,
     features: [
-      '30 Full Uses per Month',
-      'All Premium Modules Unlocked',
+      '45 Full Uses per Month',
+      'Full Company-Level Mock Tests (Top 50 Qs: Apti, Logic, Verbal & Coding)',
+      'Topic-Wise Learn & Practice Modules across all 15 Core Quantitative Topics',
       'Deep LeetCode Coding Sandbox with AI Socratic Mentor',
       'Voice & Video AI Mock Interviews (Technical + HR)',
       'Advanced ATS Resume & Job Description Analyzer',
-      'Detailed Performance Assessment Certificate',
-      'Priority AI Speed & Response Times'
+      'Direct Realtime Scoreboard & Official Certificate'
     ],
     isPopular: true,
-    badge: 'Most Popular • 30 Uses / Mo',
+    badge: 'Most Popular • ₹299',
     color: 'sky'
   },
   {
-    id: 'tier-1299',
-    name: 'Unlimited Plan',
-    price: 1299,
+    id: 'tier-699',
+    name: 'Unlimited Pro Plan',
+    price: 699,
     period: '/ month',
     allowedUses: -1,
     features: [
       'Unlimited Uses per Month (Zero Restrictions)',
-      'Unlimited Coding Problems & Test Simulations',
+      'Unlimited Company Mock Tests with Real-time Scoring & Cutoff Tracking',
+      'Unlimited Topic-Wise Quantitative, Logical & Verbal MCQ Practice',
+      'Unlimited Coding Problems & Socratic AI Debugging',
       'Unlimited Voice, Video & Chat AI Interviews',
-      'Unlimited Resume Analysis & ATS Match Reports',
-      'All System Design & Behavioral STAR modules',
-      'Direct Real-time Cloud Synchronization',
-      'Admin Priority Support'
+      'Automatic Score Logging to Recruitment Admin Panel',
+      'Priority 24/7 Support & Real-time Cloud Sync'
     ],
-    badge: 'Best Value • Unlimited / Mo',
+    badge: 'Best Value • ₹699 Unlimited',
     color: 'purple'
   }
 ];
@@ -63,9 +63,9 @@ export const defaultUserUsage: UserUsageState = {
   userEmail: 'candidate@techlead.io',
   planId: 'free',
   planName: 'Free Trial',
-  totalAllowedUses: 1,
+  totalAllowedUses: 2, // 2 free trial uses
   usedCount: 0,
-  remainingUses: 1,
+  remainingUses: 2,
   isUnlimited: false
 };
 

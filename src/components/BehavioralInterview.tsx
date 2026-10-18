@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Heart, Sparkles, CheckCircle2, AlertCircle, RefreshCw, Star } from 'lucide-react';
+import { cleanNeatRomanText, deepCleanNeatObject } from '../lib/neatText';
 
 interface BehavioralInterviewProps {
   onVerifyUsage?: () => Promise<boolean>;
@@ -42,7 +43,7 @@ export const BehavioralInterview: React.FC<BehavioralInterviewProps> = ({ onVeri
       });
 
       const data = await res.json();
-      setEvaluation(data);
+      setEvaluation(deepCleanNeatObject(data));
     } catch (err) {
       console.error(err);
     } finally {
@@ -167,22 +168,22 @@ export const BehavioralInterview: React.FC<BehavioralInterviewProps> = ({ onVeri
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm font-roman">
             <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
-              <p className="font-bold text-emerald-400 flex items-center gap-1.5">
+              <p className="font-bold text-emerald-400 flex items-center gap-1.5 font-sans text-xs">
                 <CheckCircle2 className="w-4 h-4" /> Top Story Strengths
               </p>
               {evaluation.strengths.map((s: string, i: number) => (
-                <p key={i} className="text-slate-300 text-[11px]">• {s}</p>
+                <p key={i} className="text-slate-200 text-sm font-roman">• {cleanNeatRomanText(s)}</p>
               ))}
             </div>
 
             <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
-              <p className="font-bold text-amber-300 flex items-center gap-1.5">
+              <p className="font-bold text-amber-300 flex items-center gap-1.5 font-sans text-xs">
                 <AlertCircle className="w-4 h-4 text-amber-400" /> Story Polish Advice
               </p>
               {evaluation.improvements.map((imp: string, i: number) => (
-                <p key={i} className="text-slate-300 text-[11px]">• {imp}</p>
+                <p key={i} className="text-slate-200 text-sm font-roman">• {cleanNeatRomanText(imp)}</p>
               ))}
             </div>
           </div>

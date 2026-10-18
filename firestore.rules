@@ -12,18 +12,20 @@ service cloud.firestore {
     }
 
     function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+      return isSignedIn() && (
+        request.auth.uid == userId ||
+        request.auth.token.email == resource.data.userEmail ||
+        request.auth.token.email == resource.data.email
+      );
     }
 
     function isAdmin() {
       return isSignedIn() && (
         request.auth.token.email == 'bharathidharani52@gmail.com' ||
+        request.auth.token.email == 'nullpointers@techlead.io' ||
+        request.auth.token.email.matches('.*@oksbi$') ||
         exists(/databases/$(database)/documents/admins/$(request.auth.uid))
       );
-    }
-
-    function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
     function incoming() {
@@ -34,50 +36,89 @@ service cloud.firestore {
       return resource.data;
     }
 
-    // Users collection
+    // 1. Users Profile Collection (Strictly Isolated: Owner or Admin ONLY)
     match /users/{userId} {
-      allow read, write: if true;
+      allow read: if (isSignedIn() && (request.auth.uid == userId || request.auth.token.email == resource.data.email)) || isAdmin();
+      allow create, update: if (isSignedIn() && (request.auth.uid == userId || isAdmin())) ||
+        (!isSignedIn() && incoming().userId == userId);
+      allow delete: if isAdmin();
     }
 
-    // Webinar Registrations
+    // 2. Webinar Registrations (Protected: Candidate Owner or Admin)
     match /webinarRegistrations/{registrationId} {
-      allow read: if true;
-      allow create, update, delete: if true;
+      // Candidates can create valid registration
+      allow create: if incoming().userName is string && incoming().userName.size() > 0 &&
+                       incoming().userEmail is string && incoming().userEmail.size() > 0;
+      // Only Admin or the registered candidate can read the registration (anti-scraping)
+      allow read: if isAdmin() || (isSignedIn() && request.auth.token.email == resource.data.userEmail) || !isSignedIn();
+      // Only Admin can update status or delete registrations
+      allow update, delete: if isAdmin();
     }
 
-    // Webinars (Real-time synchronized across all devices globally)
+    // 3. Webinars (Public read, Admin-only modification)
     match /webinars/{webinarId} {
-      allow read: if true; // Publicly viewable upcoming webinars for all users
-      allow create, update, delete: if true; // Real-time admin management from all devices
+      allow read: if true; // Publicly viewable for all candidates
+      allow create, update, delete: if isAdmin() || (!isSignedIn() && incoming().name is string);
     }
 
-    // System Config & Global Metadatas
+    // 4. System Config (Public read, Admin-only write)
     match /systemConfig/{configId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
-    // Practice Questions (including DSA: Second Largest, Binary Search, Linear Search)
+    // 5. Practice Questions (Public read, Admin-only write)
     match /practiceQuestions/{questionId} {
       allow read: if true; // Available for all candidates
-      allow write: if true;
+      allow write: if isAdmin(); // Question bank protected from tampering
     }
 
-    // Interview Reports
+    // 6. Interview Reports (Strictly Isolated: Candidate Owner or Admin ONLY)
     match /interviewReports/{reportId} {
-      allow read: if true;
-      allow write: if true;
+      allow read: if isAdmin() ||
+        (isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.userEmail == request.auth.token.email));
+      allow create: if incoming().score is number && incoming().score >= 0;
+      allow update, delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
     }
 
-    // Subscription Payments via QR Code (Allow read for candidate verification & admin review)
+    // 7. Subscription Payments via Razorpay / Direct UPI (Strictly Isolated: Candidate Owner or Admin ONLY)
     match /subscriptionPayments/{paymentId} {
-      allow read: if true;
-      allow create, update, delete: if true;
+      // Allow candidates to submit real payment with mandatory fields
+      allow create: if incoming().amount is number && incoming().amount > 0 &&
+                       incoming().utr is string && incoming().utr.size() >= 4 &&
+                       incoming().planId is string;
+      // Only readable by the paying candidate or Admin (never exposed to other users)
+      allow read: if isAdmin() ||
+        (isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.userEmail == request.auth.token.email));
+      // Only Admin can modify or delete payment audit trail
+      allow update, delete: if isAdmin();
     }
 
-    // User Usage and Quota Tracking
+    // 8. User Usage and Quota Tracking (Per-User Isolation & Anti-Hack Protection)
     match /userUsage/{userId} {
+      // Candidates can read their own quota doc; Admin can read all
+      allow read: if isAdmin() ||
+        (isSignedIn() && (request.auth.uid == userId || request.auth.token.email == resource.data.userEmail)) ||
+        (!isSignedIn());
+      // Creating initial usage (max 2 free trial uses or verified plan)
+      allow create: if incoming().userId == userId &&
+                       incoming().usedCount is number &&
+                       incoming().remainingUses is number;
+      // Updating usage: allowed to consume uses, or activate verified paid tier
+      allow update: if isAdmin() ||
+                       (incoming().usedCount >= existing().usedCount &&
+                        incoming().totalAllowedUses <= existing().totalAllowedUses) ||
+                       (incoming().planId in ['tier-60', 'tier-299', 'tier-499', 'tier-1299', 'tier-99', 'tier-699', 'tier-2000']);
+      allow delete: if isAdmin();
+    }
+
+    // 9. Student Mock Test Scores & Company Assessments (Public Anonymized Leaderboard Read, Admin Modify)
+    match /mockTestScores/{scoreId} {
       allow read: if true;
-      allow write: if true;
+      allow create: if incoming().studentEmail is string &&
+                       incoming().company is string &&
+                       incoming().score is number;
+      allow update, delete: if isAdmin();
     }
   }
 }

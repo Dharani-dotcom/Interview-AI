@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { sampleCodingProblems } from '../mockData';
 import { CodingProblem, CodingMentorMessage, UserUsageState } from '../types';
+import { NeatRomanText, cleanNeatRomanText } from '../lib/neatText';
 import {
   Code2,
   Play,
@@ -35,7 +36,8 @@ import {
   RotateCcw,
   ShieldAlert,
   Zap,
-  Lock
+  Lock,
+  Building2
 } from 'lucide-react';
 
 interface CodingInterviewProps {
@@ -54,7 +56,25 @@ export const CodingInterview: React.FC<CodingInterviewProps> = ({
   const [difficultyFilter, setDifficultyFilter] = useState<'All' | 'Easy' | 'Medium' | 'Hard'>('All');
   const [roleFilter, setRoleFilter] = useState<string>('All');
   const [categoryFilter, setCategoryFilter] = useState<string>('All');
+  const [companyFilter, setCompanyFilter] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
+
+  const companiesList = [
+    'All',
+    'Google',
+    'Microsoft',
+    'TCS',
+    'Infosys',
+    'Honeywell',
+    'Qualcomm',
+    'Texas Instruments',
+    'Amazon',
+    'Goldman Sachs',
+    'Meta',
+    'Accenture',
+    'Wipro',
+    'Cognizant'
+  ] as const;
 
   // Filter problems based on filters
   const filteredProblems = sampleCodingProblems.filter((p) => {
@@ -62,12 +82,32 @@ export const CodingInterview: React.FC<CodingInterviewProps> = ({
     const matchesDiff = difficultyFilter === 'All' || p.difficulty === difficultyFilter;
     const matchesRole = roleFilter === 'All' || p.role.toLowerCase().includes(roleFilter.toLowerCase());
     const matchesCategory = categoryFilter === 'All' || p.category === categoryFilter;
+    const matchesCompany =
+      companyFilter === 'All' ||
+      (p as any).company === companyFilter ||
+      (p as any).companyTags?.includes(companyFilter) ||
+      p.description.toLowerCase().includes(companyFilter.toLowerCase()) ||
+      p.title.toLowerCase().includes(companyFilter.toLowerCase()) ||
+      (companyFilter === 'Google' && ['Trie', 'Dynamic Programming', 'Graph', 'Binary Search', 'Sliding Window', 'Hard'].some(k => p.category.includes(k) || p.difficulty === k)) ||
+      (companyFilter === 'Microsoft' && ['Trees', 'Linked List', 'Arrays', 'Strings', 'Medium'].some(k => p.category.includes(k))) ||
+      (companyFilter === 'TCS' && ['Fresher (0-1 yrs)', 'Easy', 'Arrays & Hashing', 'Strings'].some(k => p.experienceLevel === k || p.difficulty === k || p.category.includes(k))) ||
+      (companyFilter === 'Infosys' && ['Fresher (0-1 yrs)', 'Mid-Level (1-3 yrs)', 'Math', 'Strings', 'Two Pointers'].some(k => p.experienceLevel === k || p.category.includes(k))) ||
+      (companyFilter === 'Honeywell' && ['Bit Manipulation', 'Embedded', 'Math', 'Arrays', 'C++'].some(k => p.category.includes(k) || p.description.toLowerCase().includes(k.toLowerCase()) || p.role.toLowerCase().includes('embedded'))) ||
+      (companyFilter === 'Qualcomm' && ['Bit Manipulation', 'Arrays & Hashing', 'Binary Search', 'C++'].some(k => p.category.includes(k) || p.description.toLowerCase().includes(k.toLowerCase()))) ||
+      (companyFilter === 'Texas Instruments' && ['Bit Manipulation', 'Math', 'Arrays', 'Two Pointers'].some(k => p.category.includes(k))) ||
+      (companyFilter === 'Amazon' && ['Stack', 'Heap', 'Graph', 'Design', 'LRU'].some(k => p.category.includes(k) || p.title.includes(k))) ||
+      (companyFilter === 'Goldman Sachs' && ['Dynamic Programming', 'Math', 'Arrays', 'Two Pointers'].some(k => p.category.includes(k))) ||
+      (companyFilter === 'Meta' && ['Two Pointers', 'Binary Search', 'Trees'].some(k => p.category.includes(k))) ||
+      (companyFilter === 'Accenture' && ['Fresher (0-1 yrs)', 'Arrays & Hashing', 'Strings'].some(k => p.experienceLevel === k || p.category.includes(k))) ||
+      (companyFilter === 'Wipro' && ['Fresher (0-1 yrs)', 'Strings', 'Arrays & Hashing'].some(k => p.experienceLevel === k || p.category.includes(k))) ||
+      (companyFilter === 'Cognizant' && ['Fresher (0-1 yrs)', 'Arrays & Hashing', 'Strings'].some(k => p.experienceLevel === k || p.category.includes(k)));
+
     const matchesSearch =
       p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (p.leetcodeNumber && String(p.leetcodeNumber).includes(searchQuery)) ||
       p.category.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesExp && matchesDiff && matchesRole && matchesCategory && matchesSearch;
+    return matchesExp && matchesDiff && matchesRole && matchesCategory && matchesCompany && matchesSearch;
   });
 
   const problem: CodingProblem = sampleCodingProblems[selectedProblemIndex] || sampleCodingProblems[0];
@@ -456,6 +496,26 @@ export const CodingInterview: React.FC<CodingInterviewProps> = ({
           ))}
         </div>
 
+        {/* Company LeetCode Filter Row */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs scrollbar-thin">
+          <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1 shrink-0">
+            <Building2 className="w-3.5 h-3.5 text-amber-400" /> Company:
+          </span>
+          {companiesList.map((c) => (
+            <button
+              key={c}
+              onClick={() => setCompanyFilter(c)}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-medium whitespace-nowrap transition-all cursor-pointer ${
+                companyFilter === c
+                  ? 'bg-amber-500 text-slate-950 font-bold shadow-xs'
+                  : 'bg-slate-950/70 text-slate-400 hover:text-slate-200 border border-slate-800/80'
+              }`}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+
         {/* Horizontal Carousel of Filtered Problem Pills */}
         <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin pt-1">
           {filteredProblems.map((prob) => {
@@ -475,6 +535,13 @@ export const CodingInterview: React.FC<CodingInterviewProps> = ({
                     isSelected ? 'bg-slate-900 text-amber-300' : 'bg-slate-800 text-slate-300'
                   }`}>
                     LC #{prob.leetcodeNumber}
+                  </span>
+                )}
+                {prob.company && (
+                  <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border ${
+                    isSelected ? 'bg-slate-900 text-amber-200 border-amber-400/40' : 'bg-amber-500/10 text-amber-300 border-amber-500/20'
+                  }`}>
+                    {prob.company}
                   </span>
                 )}
                 <span>{prob.title}</span>
@@ -572,7 +639,13 @@ export const CodingInterview: React.FC<CodingInterviewProps> = ({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 text-[11px] text-slate-400 pt-2">
+                  <div className="flex items-center gap-2 text-[11px] text-slate-400 pt-2 flex-wrap">
+                    {problem.company && (
+                      <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30 flex items-center gap-1 text-[10px]">
+                        <Building2 className="w-3 h-3 text-amber-400" />
+                        {problem.company} {problem.pyqYear ? `• ${problem.pyqYear}` : 'Actual PYQ'}
+                      </span>
+                    )}
                     <span className="text-amber-400 font-semibold">{problem.category}</span>
                     <span>•</span>
                     <span>Target Role: <strong className="text-slate-200">{problem.role}</strong></span>
@@ -981,9 +1054,9 @@ export const CodingInterview: React.FC<CodingInterviewProps> = ({
                       </div>
                     </div>
 
-                    <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 text-xs space-y-1 text-slate-300">
-                      <p className="font-bold text-white text-[11px]">AI Evaluator Feedback:</p>
-                      <p className="text-slate-400 leading-relaxed">{evaluation.explanation}</p>
+                    <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 text-sm space-y-1 text-slate-200 font-roman">
+                      <p className="font-bold text-white text-[11px] font-sans">AI Evaluator Feedback:</p>
+                      <NeatRomanText text={evaluation.explanation} />
                     </div>
                   </div>
                 ) : (
@@ -1036,13 +1109,13 @@ export const CodingInterview: React.FC<CodingInterviewProps> = ({
                           )}
                         </div>
 
-                        <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                        <NeatRomanText text={msg.text} className="text-sm" />
 
                         {msg.hints && msg.hints.length > 0 && (
-                          <div className="space-y-1.5 pt-1 border-t border-slate-800 text-[11px]">
+                          <div className="space-y-1.5 pt-1 border-t border-slate-800 text-xs font-roman">
                             {msg.hints.map((h, idx) => (
                               <div key={idx} className="p-2 rounded-lg bg-slate-950 text-amber-300">
-                                💡 {h}
+                                💡 {cleanNeatRomanText(h)}
                               </div>
                             ))}
                           </div>

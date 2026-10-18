@@ -25,7 +25,8 @@ import {
   MessageSquare,
   Zap,
   BookOpen,
-  CreditCard
+  CreditCard,
+  GraduationCap
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -71,6 +72,8 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const primaryNavItems: { id: ActiveTab; label: string; icon: React.ReactNode }[] = [
     { id: 'home', label: 'Home', icon: <Sparkles className="w-4 h-4" /> },
+    { id: 'ai-coach', label: 'AI Coach (Agents)', icon: <Brain className="w-4 h-4 text-sky-600" /> },
+    { id: 'aptitude-reasoning', label: 'Aptitude & Tests', icon: <GraduationCap className="w-4 h-4 text-amber-500" /> },
     { id: 'voice-tutor', label: 'Voice Tutor & Board', icon: <BookOpen className="w-4 h-4" /> },
     { id: 'voice-interview', label: 'AI Voice', icon: <Mic className="w-4 h-4" /> },
     { id: 'video-interview', label: 'AI Video', icon: <Video className="w-4 h-4" /> },
@@ -104,24 +107,24 @@ export const Navbar: React.FC<NavbarProps> = ({
               <Brain className="w-5 h-5 text-sky-600" />
             </div>
             <div>
-              <span className="font-bold text-lg tracking-tight text-slate-900">
-                AI Interview <span className="text-sky-700">Prep</span>
+              <span className="font-extrabold text-lg tracking-tight text-slate-900">
+                Vetting<span className="text-sky-600">ly</span>
               </span>
               <span className="text-[10px] uppercase tracking-wider text-slate-500 font-medium block -mt-1">
-                AI Interview & Career Assistant
+                AI Interview &amp; Vetting Platform
               </span>
             </div>
           </div>
 
           {/* Desktop Navigation */}
-          <nav className="hidden xl:flex items-center gap-1 bg-slate-100/80 p-1 rounded-xl border border-slate-200">
+          <nav className="hidden lg:flex items-center gap-1 overflow-x-auto max-w-2xl bg-slate-100/80 p-1 rounded-xl border border-slate-200">
             {primaryNavItems.map((item) => {
               const active = activeTab === item.id;
               return (
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
                     active
                       ? 'bg-white text-sky-700 shadow-xs border border-slate-200 font-bold'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
@@ -159,7 +162,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       : '0 Uses Left (Unlock)'}
                 </span>
                 <span className="text-[10px] px-1.5 py-0.2 rounded bg-white font-mono shadow-xs border border-slate-200">
-                  {userUsage.planId === 'tier-1299' ? '₹1299' : userUsage.planId === 'tier-699' ? '₹699' : userUsage.planId === 'tier-99' ? '₹99' : 'Free (1 Use)'}
+                  {userUsage.planId === 'tier-699' || userUsage.planId === 'tier-1299' ? '₹699 Unlimited' : userUsage.planId === 'tier-299' || userUsage.planId === 'tier-499' ? '₹299 Medium' : userUsage.planId === 'tier-60' || userUsage.planId === 'tier-99' ? '₹60 Starter' : 'Free (2 Uses)'}
                 </span>
               </button>
             )}
@@ -310,7 +313,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Mobile Hamburger toggle */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="xl:hidden p-2 text-slate-700 hover:text-slate-900"
+              className="lg:hidden p-2 text-slate-700 hover:text-slate-900"
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
@@ -320,7 +323,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
-        <div className="xl:hidden border-t border-slate-200 bg-white p-4 space-y-2 shadow-lg animate-in slide-in-from-top-2">
+        <div className="lg:hidden border-t border-slate-200 bg-white p-4 space-y-2 shadow-lg animate-in slide-in-from-top-2">
           <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-2">Primary Modules</p>
           <div className="grid grid-cols-2 gap-2">
             {primaryNavItems.map((item) => (

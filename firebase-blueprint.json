@@ -127,6 +127,24 @@
         "updatedAt": { "type": "string" }
       },
       "required": ["userId", "usedCount", "remainingUses"]
+    },
+    "MockTestScore": {
+      "title": "MockTestScore",
+      "description": "Student 50-question company mock test score record for Admin scoreboard",
+      "type": "object",
+      "properties": {
+        "studentName": { "type": "string", "maxLength": 100 },
+        "studentEmail": { "type": "string", "maxLength": 150 },
+        "company": { "type": "string", "maxLength": 100 },
+        "score": { "type": "number" },
+        "totalMarks": { "type": "number" },
+        "accuracy": { "type": "number" },
+        "timeSpentSeconds": { "type": "number" },
+        "submittedAt": { "type": "string", "maxLength": 100 },
+        "passed": { "type": "boolean" },
+        "cutoffScore": { "type": "number" }
+      },
+      "required": ["studentName", "studentEmail", "company", "score"]
     }
   },
   "firestore": {
@@ -152,11 +170,15 @@
     },
     "/subscriptionPayments/{paymentId}": {
       "schema": { "$ref": "#/entities/SubscriptionPayment" },
-      "description": "Real-time UPI subscription payments submitted via QR code"
+      "description": "Real-time Stripe and UPI subscription payments"
     },
     "/userUsage/{userId}": {
       "schema": { "$ref": "#/entities/UserUsage" },
       "description": "Real-time candidate quota and active subscription tier"
+    },
+    "/mockTestScores/{scoreId}": {
+      "schema": { "$ref": "#/entities/MockTestScore" },
+      "description": "Student 50-question company mock test scores visible in Admin Panel"
     }
   }
 }
