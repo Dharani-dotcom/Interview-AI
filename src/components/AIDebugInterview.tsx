@@ -587,35 +587,36 @@ export const AIDebugInterview: React.FC<AIDebugInterviewProps> = ({
   return (
     <div className="space-y-6 py-4 max-w-7xl mx-auto animate-in fade-in duration-300">
       {/* ================================================================= */}
-      {/* 1. LATEST WAY OF INTERVIEW STYLE (2026 FORMAT) — ABOVE CORRECTION */}
+      {/* 1. LATEST 2026 INTERVIEW STYLE SIMULATOR (BROWN & WHITE THEME)    */}
+      {/*    PLACED DIRECTLY ABOVE CODE CORRECTION (FIX WRONG CODE - 32 Qs) */}
       {/* ================================================================= */}
-      <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 border border-indigo-500/30 rounded-3xl p-6 shadow-2xl space-y-5">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800/90 pb-4">
+      <div className="bg-gradient-to-br from-[#3E1F0F] via-[#5A2E17] to-[#2F160A] border-2 border-[#8B5A2B] rounded-3xl p-6 shadow-2xl space-y-5 text-white">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-white/20 pb-4">
           <div className="space-y-1.5">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="px-2.5 py-0.5 rounded-md bg-indigo-500/20 border border-indigo-400/40 text-indigo-300 text-[11px] font-mono font-bold uppercase tracking-wider flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                <span>Latest 2026 Interview Style</span>
+              <span className="px-3 py-1 rounded-md bg-white text-[#4A2511] text-[11px] font-mono font-extrabold uppercase tracking-wider flex items-center gap-1.5 shadow-sm">
+                <Sparkles className="w-3.5 h-3.5 text-[#8B4513]" />
+                <span>Latest 2026 Interview Style Simulator</span>
               </span>
-              <span className="text-xs font-mono text-emerald-400">
-                Replaces Old Memorized Whiteboard Interviews
+              <span className="px-2.5 py-0.5 rounded-md bg-[#703B1D] border border-white/30 text-white text-xs font-mono font-semibold">
+                Directly Above Code Correction (Fix Wrong Code - 32 Qs)
               </span>
             </div>
             <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
               Modern 2026 Engineering Interview Simulator — Choose Your Round Style
             </h2>
-            <p className="text-xs text-slate-300 max-w-3xl leading-relaxed">
-              Top tech companies now test how you <strong className="text-white">audit AI-generated code for hallucinations</strong>, <strong className="text-white">review live GitHub Pull Requests</strong>, <strong className="text-white">triage SEV-1 production incidents</strong>, and <strong className="text-white">adapt to mid-interview requirement twists</strong> before applying your code correction below.
+            <p className="text-xs text-[#F5EBE6] max-w-3xl leading-relaxed">
+              Top tech companies now test how you <strong className="text-white underline decoration-white/60">audit AI-generated code for hallucinations</strong>, <strong className="text-white underline decoration-white/60">review live GitHub Pull Requests</strong>, <strong className="text-white underline decoration-white/60">triage SEV-1 production incidents</strong>, and <strong className="text-white underline decoration-white/60">adapt to mid-interview requirement twists</strong> before applying your code correction below.
             </p>
           </div>
 
-          {/* Live 2026 Interview Round Timer & Voice Brief */}
+          {/* Live 2026 Interview Round Timer & Voice Brief (Brown & White) */}
           <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
-            <div className="px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 flex items-center gap-2.5">
-              <Clock className={`w-4 h-4 ${timerRunning ? 'text-amber-400 animate-pulse' : 'text-slate-400'}`} />
+            <div className="px-3.5 py-2 rounded-xl bg-white text-[#3E1F0F] border-2 border-[#8B5A2B] flex items-center gap-2.5 shadow-md">
+              <Clock className={`w-4 h-4 ${timerRunning ? 'text-[#8B4513] animate-pulse' : 'text-[#5A2E17]'}`} />
               <div>
-                <span className="text-[10px] text-slate-400 block uppercase font-mono">Round Timer</span>
-                <span className="text-sm font-mono font-bold text-white tabular-nums">
+                <span className="text-[10px] text-[#6E3B1E] block uppercase font-mono font-bold">Round Timer</span>
+                <span className="text-sm font-mono font-black text-[#2F160A] tabular-nums">
                   {formatTimer(timerSeconds)}
                 </span>
               </div>
@@ -624,8 +625,8 @@ export const AIDebugInterview: React.FC<AIDebugInterviewProps> = ({
                 onClick={() => setTimerRunning(!timerRunning)}
                 className={`px-2.5 py-1 rounded-lg text-[11px] font-bold cursor-pointer transition-colors ${
                   timerRunning
-                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                    : 'bg-indigo-600 hover:bg-indigo-500 text-white'
+                    ? 'bg-[#8B4513] text-white'
+                    : 'bg-[#4A2511] hover:bg-[#3E1F0F] text-white'
                 }`}
               >
                 {timerRunning ? 'Pause' : 'Start 15m Round'}
@@ -636,7 +637,7 @@ export const AIDebugInterview: React.FC<AIDebugInterviewProps> = ({
                   setTimerRunning(false);
                   setTimerSeconds(15 * 60);
                 }}
-                className="text-slate-400 hover:text-white p-1 cursor-pointer"
+                className="text-[#5A2E17] hover:text-[#2F160A] p-1 cursor-pointer"
                 title="Reset Timer"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
@@ -647,78 +648,28 @@ export const AIDebugInterview: React.FC<AIDebugInterviewProps> = ({
               type="button"
               onClick={() =>
                 handleSpeak(
-                  `${activeStyleConfig.title}. ${activeStyleConfig.shortDesc} Currently inspecting Question ${currentQuestion.questionNumber}: ${currentQuestion.title}.`
+                  `Currently inspecting Question ${currentQuestion.questionNumber}: ${currentQuestion.title}. ${currentQuestion.problemStatement}`
                 )
               }
-              className="px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+              className="px-3.5 py-2.5 rounded-xl bg-white hover:bg-[#FDF8F5] border-2 border-[#8B5A2B] text-[#3E1F0F] text-xs font-extrabold flex items-center gap-1.5 cursor-pointer shadow-md transition-colors"
             >
-              {isSpeaking ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-sky-400" />}
+              {isSpeaking ? <VolumeX className="w-4 h-4 text-rose-600" /> : <Volume2 className="w-4 h-4 text-[#5A2E17]" />}
               <span>{isSpeaking ? 'Stop Audio' : 'Hear 2026 Style Brief'}</span>
             </button>
           </div>
         </div>
 
-        {/* 4 Selectable Latest 2026 Interview Style Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-          {LATEST_2026_INTERVIEW_STYLES.map((style) => {
-            const isSelected = style.id === activeStyleId;
-            return (
-              <div
-                key={style.id}
-                onClick={() => {
-                  setActiveStyleId(style.id);
-                  setStyleAiResponse('');
-                }}
-                className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ${
-                  isSelected
-                    ? 'bg-indigo-950/80 border-indigo-400 shadow-lg ring-1 ring-indigo-400/50'
-                    : 'bg-slate-900/90 border-slate-800 hover:border-slate-700 hover:bg-slate-900'
-                }`}
-              >
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="p-2 rounded-xl bg-slate-950 border border-slate-800 text-indigo-400">
-                      {style.id === 'copilot-audit' && <Bot className="w-4 h-4 text-sky-400" />}
-                      {style.id === 'pr-review' && <GitPullRequest className="w-4 h-4 text-emerald-400" />}
-                      {style.id === 'incident-response' && <Flame className="w-4 h-4 text-rose-400" />}
-                      {style.id === 'twist-pair' && <Cpu className="w-4 h-4 text-amber-400" />}
-                    </span>
-                    <span
-                      className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${
-                        isSelected
-                          ? 'bg-indigo-500 text-white'
-                          : 'bg-slate-950 text-slate-400 border border-slate-800'
-                      }`}
-                    >
-                      {style.badge}
-                    </span>
-                  </div>
-
-                  <h3 className="text-sm font-bold text-white leading-snug">{style.title}</h3>
-                  <p className="text-[11px] font-mono text-indigo-300">{style.companyAdoption}</p>
-                  <p className="text-xs text-slate-300 leading-relaxed">{style.shortDesc}</p>
-                </div>
-
-                <div className="pt-3 mt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px]">
-                  <span className={isSelected ? 'text-emerald-400 font-bold' : 'text-slate-400'}>
-                    {isSelected ? '● Active Interview Style' : 'Click to Activate Style'}
-                  </span>
-                  <ChevronRight className={`w-3.5 h-3.5 ${isSelected ? 'text-indigo-300' : 'text-slate-500'}`} />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Live Context & Interactive Drill Box for the Active 2026 Interview Style */}
-        <div className="bg-slate-950/90 border border-slate-800 rounded-2xl p-4 space-y-3.5">
+        {/* Live Context & Interactive Drill Box for the Active 2026 Interview Style (White & Brown Card) */}
+        <div className="bg-white text-[#2F160A] border-2 border-[#8B5A2B] rounded-2xl p-4 sm:p-5 space-y-3.5 shadow-lg">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
             <div className="flex items-center gap-2 flex-wrap">
-              <ShieldAlert className="w-4 h-4 text-indigo-400 shrink-0" />
-              <span className="text-xs font-bold text-white">
+              <span className="p-1.5 rounded-lg bg-[#4A2511] text-white shrink-0">
+                <ShieldAlert className="w-4 h-4" />
+              </span>
+              <span className="text-xs font-black text-[#2F160A]">
                 Active 2026 Scenario for Q#{currentQuestion.questionNumber} ({currentQuestion.title}):
               </span>
-              <span className="text-xs text-indigo-300 font-mono">
+              <span className="text-xs text-[#5A2E17] font-mono font-bold bg-[#F7EFEA] px-2.5 py-0.5 rounded-md border border-[#D8C0B0]">
                 {activeStyleId === 'copilot-audit' &&
                   `AI Co-Pilot generated ${currentQuestion.language} code that hallucinates on input ${currentQuestion.failingExample.input}`}
                 {activeStyleId === 'pr-review' &&
@@ -734,55 +685,55 @@ export const AIDebugInterview: React.FC<AIDebugInterviewProps> = ({
               type="button"
               disabled={styleLoading}
               onClick={() => handleRunLatestStyleAction('twist')}
-              className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-bold flex items-center gap-1.5 shrink-0 cursor-pointer transition-colors"
+              className="px-3.5 py-2 rounded-xl bg-[#4A2511] hover:bg-[#3E1F0F] text-white text-xs font-extrabold flex items-center gap-1.5 shrink-0 cursor-pointer transition-colors shadow-sm"
             >
-              <Zap className="w-3.5 h-3.5" />
+              <Zap className="w-3.5 h-3.5 text-[#F3D6C1]" />
               <span>{styleLoading ? 'Generating...' : 'Throw Live 2026 Requirement Twist'}</span>
             </button>
           </div>
 
-          <p className="text-xs text-slate-400">
-            <strong className="text-slate-200">What Hiring Managers Grade in This Style:</strong>{' '}
+          <p className="text-xs text-[#4A2511]">
+            <strong className="text-[#2F160A] font-extrabold">What Hiring Managers Grade in This Style:</strong>{' '}
             {activeStyleConfig.whatInterviewersTest}
           </p>
 
           {/* Dynamic Twist Banner if generated */}
           {liveTwistPrompt && (
-            <div className="p-3.5 rounded-xl bg-amber-950/40 border border-amber-500/40 text-xs text-amber-100 space-y-1 animate-in fade-in">
-              <div className="font-bold text-amber-300 flex items-center gap-1.5">
+            <div className="p-3.5 rounded-xl bg-[#4A2511] border-2 border-[#2F160A] text-xs text-white space-y-1 animate-in fade-in shadow-sm">
+              <div className="font-extrabold text-[#F3D6C1] flex items-center gap-1.5">
                 <Zap className="w-3.5 h-3.5" />
                 <span>Live Mid-Interview Requirement Twist from Staff Interviewer:</span>
               </div>
-              <p className="leading-relaxed">{liveTwistPrompt}</p>
+              <p className="leading-relaxed text-white">{liveTwistPrompt}</p>
             </div>
           )}
 
           {/* Interactive 2026 Style Review / Audit Submission Bar */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
             <div className="relative flex-1">
-              <MessageSquareCode className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <MessageSquareCode className="w-4 h-4 text-[#5A2E17] absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 value={styleReviewNote}
                 onChange={(e) => setStyleReviewNote(e.target.value)}
                 placeholder={activeStyleConfig.inputPlaceholder}
-                className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 focus:border-indigo-500 focus:outline-none text-xs text-white placeholder-slate-500"
+                className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-[#FAF5F2] border-2 border-[#C8A992] focus:border-[#4A2511] focus:outline-none text-xs text-[#2F160A] font-medium placeholder-[#8C654C]"
               />
             </div>
             <button
               type="button"
               disabled={styleLoading}
               onClick={() => handleRunLatestStyleAction('pr-audit')}
-              className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-bold flex items-center justify-center gap-1.5 shrink-0 cursor-pointer transition-colors"
+              className="px-4 py-2.5 rounded-xl bg-[#5A2E17] hover:bg-[#3E1F0F] disabled:opacity-50 text-white text-xs font-extrabold flex items-center justify-center gap-1.5 shrink-0 cursor-pointer transition-colors shadow-sm"
             >
-              <Sparkles className="w-3.5 h-3.5" />
+              <Sparkles className="w-3.5 h-3.5 text-[#F3D6C1]" />
               <span>{styleLoading ? 'Evaluating...' : activeStyleConfig.actionButtonLabel}</span>
             </button>
           </div>
 
           {styleAiResponse && (
-            <div className="p-3.5 rounded-xl bg-indigo-950/50 border border-indigo-500/40 text-xs text-indigo-100 leading-relaxed animate-in fade-in">
-              <strong className="text-indigo-300 block mb-0.5">
+            <div className="p-3.5 rounded-xl bg-[#F7EFEA] border-2 border-[#8B5A2B] text-xs text-[#2F160A] leading-relaxed animate-in fade-in">
+              <strong className="text-[#4A2511] font-black block mb-0.5">
                 2026 Interviewer Evaluation ({activeStyleConfig.title}):
               </strong>
               {styleAiResponse}
@@ -803,9 +754,9 @@ export const AIDebugInterview: React.FC<AIDebugInterviewProps> = ({
             <div>
               <div className="flex items-center gap-2.5 flex-wrap">
                 <h1 className="text-2xl font-black text-white tracking-tight">
-                  AI Bug-Hunting &amp; Code Correction Interview
+                  Code Correction (Fix Wrong Code - 32 Qs)
                 </h1>
-                <span className="text-xs font-mono text-amber-300">
+                <span className="px-2.5 py-0.5 rounded-md bg-[#5A2E17] border border-white/30 text-white text-xs font-mono font-bold">
                   32 Curated Challenges · Basic to High
                 </span>
               </div>

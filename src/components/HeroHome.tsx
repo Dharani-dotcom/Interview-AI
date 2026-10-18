@@ -567,31 +567,31 @@ export const HeroHome: React.FC<HeroHomeProps> = ({
         </div>
       </section>
 
-      {/* LATEST 2026 INTERVIEW STYLE SPOTLIGHT (ABOVE CODE CORRECTION & MODULES) */}
+      {/* LATEST 2026 INTERVIEW STYLE SIMULATOR (BROWN & WHITE THEME ABOVE CODE CORRECTION) */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="rounded-3xl bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 border border-indigo-500/30 p-6 sm:p-8 shadow-xl text-white">
+        <div className="rounded-3xl bg-gradient-to-br from-[#3E1F0F] via-[#5A2E17] to-[#2F160A] border-2 border-[#8B5A2B] p-6 sm:p-8 shadow-2xl text-white space-y-5">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             <div className="space-y-2.5 max-w-3xl">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-indigo-500/20 border border-indigo-400/40 text-indigo-300 text-xs font-mono font-bold uppercase tracking-wider">
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                <span>Latest 2026 Interview Style • Industry Standard</span>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-white text-[#4A2511] text-xs font-mono font-extrabold uppercase tracking-wider shadow-sm">
+                <Sparkles className="w-3.5 h-3.5 text-[#8B4513]" />
+                <span>Latest 2026 Interview Style Simulator • Above Code Correction</span>
               </div>
               <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
-                Experience the New 2026 Tech Interview Format (Above Code Correction)
+                Latest 2026 Interview Style Simulator (Directly Above Fix Wrong Code - 32 Qs)
               </h2>
-              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                Modern hiring at Google, Meta, OpenAI, Stripe &amp; Amazon has shifted beyond static whiteboard memorization. Practice the <strong className="text-white">4 Latest Interview Styles</strong> right above our 32-Question Code Correction Arena: <strong className="text-indigo-300">1. AI Co-Pilot Hallucination Audit</strong>, <strong className="text-emerald-300">2. Live GitHub PR Code Review</strong>, <strong className="text-rose-300">3. SEV-1 Production Incident Triage</strong>, and <strong className="text-amber-300">4. Dynamic Mid-Interview Requirement Twists</strong>.
+              <p className="text-xs sm:text-sm text-[#F5EBE6] leading-relaxed">
+                Modern hiring at Google, Meta, OpenAI, Stripe &amp; Amazon has shifted beyond static whiteboard memorization. Practice the <strong className="text-white underline decoration-white/60">4 Latest 2026 Interview Styles</strong> directly above our 32-Question Code Correction Arena.
               </p>
             </div>
 
             <div className="flex flex-col sm:flex-row lg:flex-col gap-3 shrink-0">
               <button
                 onClick={() => setActiveTab('debug-interview')}
-                className="px-6 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg flex items-center justify-center gap-2 transition-all cursor-pointer"
+                className="px-6 py-3.5 rounded-xl bg-white hover:bg-[#FAF5F2] text-[#3E1F0F] border-2 border-[#8B5A2B] font-extrabold text-xs shadow-lg flex items-center justify-center gap-2 transition-all cursor-pointer"
               >
-                <Sparkles className="w-4 h-4 text-amber-300" />
-                <span>Launch 2026 Interview Style + Fix Wrong Code (32 Qs)</span>
-                <ArrowRight className="w-4 h-4" />
+                <Sparkles className="w-4 h-4 text-[#8B4513]" />
+                <span>Open 2026 Interview Simulator + Fix Wrong Code (32 Qs)</span>
+                <ArrowRight className="w-4 h-4 text-[#4A2511]" />
               </button>
             </div>
           </div>

@@ -80,7 +80,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'video-interview', label: 'AI Video', icon: <Video className="w-4 h-4" /> },
     { id: 'chat-interview', label: 'Interview Chat', icon: <Bot className="w-4 h-4" /> },
     { id: 'coding-interview', label: 'Coding', icon: <Code2 className="w-4 h-4" /> },
-    { id: 'debug-interview', label: 'Fix Wrong Code (32 Qs)', icon: <Bug className="w-4 h-4 text-rose-500" /> },
+    { id: 'debug-interview', label: '2026 Style + Fix Code (32 Qs)', icon: <Bug className="w-4 h-4" /> },
     { id: 'system-design', label: 'System Design', icon: <Cpu className="w-4 h-4" /> },
     { id: 'resume-analyzer', label: 'Resume', icon: <FileText className="w-4 h-4" /> },
     { id: 'dashboard', label: 'Dashboard', icon: <BarChart3 className="w-4 h-4" /> },
@@ -122,14 +122,19 @@ export const Navbar: React.FC<NavbarProps> = ({
           <nav className="hidden lg:flex items-center gap-1 overflow-x-auto max-w-2xl bg-slate-100/80 p-1 rounded-xl border border-slate-200">
             {primaryNavItems.map((item) => {
               const active = activeTab === item.id;
+              const isDebug2026 = item.id === 'debug-interview';
               return (
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
                   className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
-                    active
-                      ? 'bg-white text-sky-700 shadow-xs border border-slate-200 font-bold'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                    isDebug2026
+                      ? active
+                        ? 'bg-[#3E1F0F] text-white shadow-sm border border-[#8B5A2B] font-extrabold ring-2 ring-[#D29B6C]'
+                        : 'bg-[#5A2E17] text-white hover:bg-[#3E1F0F] border border-[#8B5A2B] font-bold shadow-2xs'
+                      : active
+                        ? 'bg-white text-sky-700 shadow-xs border border-slate-200 font-bold'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
                   }`}
                 >
                   {item.icon}
